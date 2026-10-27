@@ -3,9 +3,11 @@ import { events as eventsApi, customFields as cfApi } from '../services/api';
 import { useConfirmOverlay } from './ConfirmOverlay';
 import { EditIconButton, DeleteIconButton } from './RowActions';
 import { useI18n } from '../hooks/useI18n';
+import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 
 import TranslatedError from './TranslatedError';
+import EmailTemplatesPanel from './EmailTemplatesPanel';
 import FieldConditionEditor, { conditionSummary } from './FieldConditionEditor';
 import { BUILTIN_KINDS, CUSTOM_KINDS, FORMATS, INFO } from '../utils/fieldConditions';
 
@@ -47,7 +49,9 @@ export default function FormConfigPanel({ eventId, isAdmin }) {
   const fileInputRef = useRef(null);
   const { confirm, ConfirmOverlay } = useConfirmOverlay();
   const { t } = useI18n();
+  const { user } = useAuth();
   const { showToast, ToastHost } = useToast();
+  const isSuperAdmin = user?.role === 'super_admin';
 
   const FIELD_LABELS = {
     gender: t('register.gender'),
@@ -601,6 +605,7 @@ export default function FormConfigPanel({ eventId, isAdmin }) {
           </div>
         )}
       </div>
+      {isSuperAdmin && <EmailTemplatesPanel eventId={eventId} />}
       <ConfirmOverlay />
       <ToastHost />
     </div>

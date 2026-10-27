@@ -472,4 +472,9 @@ export const workspaceSettings = {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
+  getEmailTemplates: () => request('/admin/workspace/email-templates'),
+  updateEmailTemplates: (templates) => request('/admin/workspace/email-templates', {
+    method: 'PUT',
+    body: JSON.stringify({ templates }),
+  }),
 };

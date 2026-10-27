@@ -74,6 +74,8 @@ Changes save automatically.
 
 Every form also has an optional **Message to Organisers** box (for dietary needs, accessibility and the like) and a consent checkbox. If a Super Admin has set a **Privacy notice URL** under **Manage ▸ Workspace**, a **Privacy notice** link appears right after the consent sentence.
 
+At the bottom of the form editor, Super Admins can also edit the **Registration email content**: the confirmation-request and registration-receipt emails, in each supported language. These edits apply across the whole installation, not just the event you opened the editor from. Keep placeholders such as `{event}` and `{name}` intact so the event name and participant name can be filled in. **Send test email** sends an SMTP test message to your account.
+
 ### Custom fields
 
 For anything the built-ins don't cover, click **+ Add Field** under **Custom Fields**. Choose:

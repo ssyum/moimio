@@ -29,6 +29,7 @@ from app.services.participant_service import (
     soft_delete_participant, confirm_participant, maybe_signal_over_cap,
 )
 from app.services.event_service import get_event_by_id
+from app.services.workspace_settings_service import get_email_templates
 from app.api.deps import get_current_user, require_role, ensure_event_writable, ensure_event_admin
 from app.services.permissions import get_event_permissions, has_read, has_write
 
@@ -158,6 +159,7 @@ async def public_register(
 
     # Send email (non-blocking — log failures but don't fail registration)
     lang = data.preferred_language or 'en'
+    email_strings = (await get_email_templates(db)).get(lang)
     if require_confirmation and participant.confirmation_token:
         # v0.61b-2: derive the public base URL from the incoming request
         # (Caddy's forwarded headers). Gives the right link for any
@@ -171,6 +173,7 @@ async def public_register(
             event_name=event.name,
             confirmation_url=confirmation_url,
             lang=lang,
+            email_strings=email_strings,
         )
     else:
         send_registration_receipt(
@@ -179,6 +182,7 @@ async def public_register(
             event_name=event.name,
             group_code=participant.group_code,
             lang=lang,
+            email_strings=email_strings,
         )
 
     # v1.0.1e-22: fan out to the organiser's registration dashboard so its
@@ -241,12 +245,14 @@ async def confirm_registration(
         # Only on the fresh branch — re-visits never re-send.
         event = await get_event_by_id(db, participant.event_id)
         if event:
+            lang = getattr(participant, 'preferred_language', 'en') or 'en'
             send_registration_receipt(
                 to_email=participant.email,
                 first_name=participant.first_name,
                 event_name=event.name,
                 group_code=participant.group_code,
-                lang=getattr(participant, 'preferred_language', 'en') or 'en',
+                lang=lang,
+                email_strings=(await get_email_templates(db)).get(lang),
             )
         # v1.0.1e-22: live-update the registration dashboard's confirmed count
         # when someone clicks their email link. Fire-and-forget.
@@ -568,6 +574,7 @@ async def resend_confirmation(
         )
 
     lang = participant.preferred_language or 'en'
+    email_strings = (await get_email_templates(db)).get(lang)
 
     if participant.registration_status == RegistrationStatus.PENDING and participant.confirmation_token:
         base = get_app_base_url(request)
@@ -578,6 +585,7 @@ async def resend_confirmation(
             event_name=event.name,
             confirmation_url=confirmation_url,
             lang=lang,
+            email_strings=email_strings,
         )
         return {"sent": True, "kind": "confirmation"}
 
@@ -588,6 +596,7 @@ async def resend_confirmation(
         event_name=event.name,
         group_code=participant.group_code,
         lang=lang,
+        email_strings=email_strings,
     )
     return {"sent": True, "kind": "receipt"}
 
