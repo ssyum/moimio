@@ -581,7 +581,7 @@
   "grouping.request_explainer": "Indiquez avec qui vous souhaitez être. Donnez autant de détails que possible: nom complet, origine, tout élément permettant de les identifier. Les organisateurs essaieront de vous regrouper.",
   "grouping.request_name": "Nom de la personne",
   "grouping.section_hint": "Facultatif. Si vous souhaitez être placés ensemble, indiquez-le ici.",
-  "grouping.section_title": "Vous venez en famille ou entre amis ?",
+  "grouping.section_title": "Vous venez en famille ou entre amis ? (Uniquement pour la répartition des chambres !)",
   "grouping.start_customise": "Utiliser un autre nom de groupe",
   "grouping.start_info": "Votre code ressemblera à {stem}-•••. Le code complet arrive dans votre e-mail de confirmation. Partagez-le et les autres seront placés dans le même groupe que vous.",
   "history.action.assigned": "Attribué à {unit}",

@@ -581,7 +581,7 @@
   "grouping.request_explainer": "Gib an, mit wem du zugewiesen werden möchtest. Je mehr Details du angibst (vollständiger Name, Herkunft usw.), desto besser können die Organisatoren euch zusammen zuweisen.",
   "grouping.request_name": "Name der Person",
   "grouping.section_hint": "Optional. Wenn ihr zusammen eingeteilt werden möchtet, gib das hier an.",
-  "grouping.section_title": "Kommst du mit Familie oder Freunden?",
+  "grouping.section_title": "Kommst du mit Familie oder Freunden? (Nur für Zimmereinteilung!)",
   "grouping.start_customise": "Anderen Gruppennamen verwenden",
   "grouping.start_info": "Dein Code wird so aussehen: {stem}-•••. Den vollständigen Code erhältst du nach der Anmeldung per E-Mail. Teile ihn mit den anderen, damit ihr zusammen eingeteilt werdet.",
   "history.action.assigned": "{unit} zugewiesen",

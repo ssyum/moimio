@@ -581,7 +581,7 @@
   "grouping.request_explainer": "Indícanos con quién quieres estar. Da tantos detalles como sea posible: nombre completo, procedencia, cualquier dato que ayude a identificar a la persona. Los organizadores lo revisarán e intentarán agruparos.",
   "grouping.request_name": "Nombre de la persona",
   "grouping.section_hint": "Opcional. Si quieres que te asignemos con alguien, indícalo aquí.",
-  "grouping.section_title": "¿Vienes con familia o amigos?",
+  "grouping.section_title": "¿Vienes con familia o amigos? (¡Solo para la asignación de habitaciones!)",
   "grouping.start_customise": "Usar otro nombre de grupo",
   "grouping.start_info": "Tu código tendrá este aspecto: {stem}-•••. El código completo llega en tu correo de confirmación. Compártelo y los demás serán asignados al mismo grupo que tú.",
   "history.action.assigned": "Asignado a {unit}",

@@ -581,7 +581,7 @@
   "grouping.request_explainer": "Tell us who you'd like to be with. Add as much detail as you can: full name, where they're from, anything that helps identify them. The organisers will read this and try to group you together when they make assignments.",
   "grouping.request_name": "Their name",
   "grouping.section_hint": "Optional. If you'd like to be placed together, tell us here.",
-  "grouping.section_title": "Coming with family or friends?",
+  "grouping.section_title": "Coming with family or friends? (Only for room assignments!)",
   "grouping.start_customise": "Use a different group name",
   "grouping.start_info": "Your code will look like {stem}-•••. The full code arrives in your confirmation email. Share it and the others will be placed with you.",
   "history.action.assigned": "Assigned to {unit}",
