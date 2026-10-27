@@ -303,6 +303,7 @@
   "errors.export.zip_missing_files": "Des fichiers sont manquants dans l’archive ZIP : {files}",
   "errors.export.zip_unreadable": "Une partie de la sauvegarde n'a pas pu être lue : {files}",
   "errors.field.digits": "Saisissez uniquement des chiffres.",
+  "errors.field.date_format": "Utilisez le format JJ.MM.AAAA (par exemple, 31.12.2000).",
   "errors.field.email": "Saisissez une adresse e-mail valide.",
   "errors.field.invalid": "Cela ne semble pas correct.",
   "errors.field.phone": "Saisissez un numéro de téléphone valide.",

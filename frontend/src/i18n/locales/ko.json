@@ -303,6 +303,7 @@
   "errors.export.zip_missing_files": "백업 ZIP 파일에 누락된 파일이 있습니다: {files}",
   "errors.export.zip_unreadable": "백업의 일부를 읽지 못했습니다: {files}",
   "errors.field.digits": "숫자만 입력해 주세요.",
+  "errors.field.date_format": "DD.MM.YYYY 형식으로 입력해 주세요 (예: 31.12.2000).",
   "errors.field.email": "올바른 이메일 주소를 입력해 주세요.",
   "errors.field.invalid": "입력하신 내용을 다시 확인해 주세요.",
   "errors.field.phone": "올바른 전화번호를 입력해 주세요.",

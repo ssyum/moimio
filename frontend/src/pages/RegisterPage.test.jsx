@@ -43,7 +43,9 @@ const VALIDATION_422 = {
   },
 };
 
-function mockFetch({ rejectSubmit = true, privacyNoticeUrl = null, workspaceFails = false } = {}) {
+function mockFetch({
+  rejectSubmit = true, privacyNoticeUrl = null, workspaceFails = false, enabledFields = [],
+} = {}) {
   return vi.fn(async (url, opts = {}) => {
     const u = String(url);
     // LEGAL-1: the workspace's privacy notice URL, or null, or a broken read.
@@ -59,7 +61,7 @@ function mockFetch({ rejectSubmit = true, privacyNoticeUrl = null, workspaceFail
     }
     if (u.includes('/custom-fields')) return { ok: true, json: async () => [] };
     if (u.includes('/allocation-categories')) return { ok: true, json: async () => [] };
-    if (u.includes('/fields')) return { ok: true, json: async () => [] };
+    if (u.includes('/fields')) return { ok: true, json: async () => enabledFields };
     // the event itself
     return {
       ok: true, status: 200,
@@ -273,6 +275,41 @@ describe('the form does its own checking', () => {
     submitForm();
 
     await waitFor(() => expect(registerPosts()).toHaveLength(1));
+  });
+
+  it('displays and submits the date of birth as DD.MM.YYYY and ISO respectively', async () => {
+    await renderForm({
+      rejectSubmit: false,
+      enabledFields: [{ field_name: 'date_of_birth', is_enabled: true, is_required: true }],
+    });
+    fillValid();
+
+    const dateInput = set('date_of_birth', '31.12.2000');
+    expect(dateInput).toHaveAttribute('type', 'text');
+    expect(dateInput).toHaveAttribute('placeholder', 'DD.MM.YYYY');
+    const datePicker = document.querySelector('input[type="date"]');
+    expect(datePicker).toHaveAttribute('aria-label', `${en['register.dob']} calendar`);
+    fireEvent.change(datePicker, { target: { value: '2000-12-31' } });
+    expect(dateInput).toHaveValue('31.12.2000');
+    submitForm();
+
+    await waitFor(() => expect(registerPosts()).toHaveLength(1));
+    const request = registerPosts()[0][1];
+    expect(JSON.parse(request.body).date_of_birth).toBe('2000-12-31');
+  });
+
+  it('rejects invalid dates before sending a registration', async () => {
+    await renderForm({
+      enabledFields: [{ field_name: 'date_of_birth', is_enabled: true, is_required: false }],
+    });
+    fillValid();
+    set('date_of_birth', '31.02.2000');
+    submitForm();
+
+    await waitFor(() => {
+      expect(screen.getByText(en['errors.field.date_format'])).toBeInTheDocument();
+    });
+    expect(registerPosts()).toHaveLength(0);
   });
 
   it('checks an extra person\'s card in the same pass', async () => {

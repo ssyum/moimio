@@ -303,6 +303,7 @@
   "errors.export.zip_missing_files": "Im Backup-ZIP fehlen folgende Dateien: {files}",
   "errors.export.zip_unreadable": "Ein Teil der Sicherung konnte nicht gelesen werden: {files}",
   "errors.field.digits": "Bitte gib nur Ziffern ein.",
+  "errors.field.date_format": "Bitte verwende das Format TT.MM.JJJJ (zum Beispiel 31.12.2000).",
   "errors.field.email": "Bitte gib eine gültige E-Mail-Adresse ein.",
   "errors.field.invalid": "Das sieht nicht richtig aus.",
   "errors.field.phone": "Bitte gib eine gültige Telefonnummer ein.",

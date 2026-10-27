@@ -303,6 +303,7 @@
   "errors.export.zip_missing_files": "Faltan archivos en el ZIP de copia de seguridad: {files}",
   "errors.export.zip_unreadable": "No se pudo leer una parte de la copia de seguridad: {files}",
   "errors.field.digits": "Introduce solo dígitos.",
+  "errors.field.date_format": "Usa el formato DD.MM.AAAA (por ejemplo, 31.12.2000).",
   "errors.field.email": "Introduce una dirección de correo electrónico válida.",
   "errors.field.invalid": "Esto no parece correcto.",
   "errors.field.phone": "Introduce un número de teléfono válido.",

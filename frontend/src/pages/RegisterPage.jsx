@@ -5,6 +5,8 @@ import { I18nProvider, useI18n, SUPPORTED_LANGS } from '../hooks/useI18n';
 import TranslatedError from '../components/TranslatedError';
 import DemoNotice from '../components/DemoNotice';
 import InfoText from '../components/InfoText';
+import RegistrationDateInput from '../components/RegistrationDateInput';
+import { parseRegistrationDate } from '../utils/registrationDate';
 import {
   BUILTIN_KINDS, INFO, answersToSend, fieldFormat, fitsFormat, referenceDate, visibleFieldIds,
 } from '../utils/fieldConditions';
@@ -188,7 +190,11 @@ function RegisterForm() {
   // `personFrom` is the built-in answers as the server will receive them:
   // email always, the others only when the field is on the form.
   const personFrom = (src) => Object.fromEntries(Object.keys(BUILTIN_KINDS).map(name => [
-    name, name === 'email' || isFieldEnabled(name) ? (src?.[name] ?? '') : '',
+    name, name === 'email' || isFieldEnabled(name)
+      ? (name === 'date_of_birth'
+        ? parseRegistrationDate(src?.[name]) || ''
+        : (src?.[name] ?? ''))
+      : '',
   ]));
   // An extra person who copies the first person's details is sent the first
   // person's phone, address, country and organisation.
@@ -196,8 +202,14 @@ function RegisterForm() {
     ...ep, phone: formData.phone, address: formData.address,
     country: formData.country, church_organisation: formData.church_organisation,
   } : ep);
+  const normalizedCustomValues = (values) => Object.fromEntries(customFields.map(cf => [
+    cf.id,
+    cf.field_type === 'date' && values?.[cf.id]
+      ? parseRegistrationDate(values[cf.id]) || values[cf.id]
+      : values?.[cf.id],
+  ]));
   const shownFor = (values, person) => visibleFieldIds(
-    customFields, values, person, referenceDate(event?.start_date),
+    customFields, normalizedCustomValues(values), person, referenceDate(event?.start_date),
   );
 
   // v1.0.4ze (FORM-1, D7): the loosest possible shape test for an address —
@@ -242,6 +254,10 @@ function RegisterForm() {
         errs[name] = 'errors.field.required';
       }
     }
+    if (isFieldEnabled('date_of_birth') && !blank('date_of_birth')
+      && !parseRegistrationDate(formData.date_of_birth)) {
+      errs.date_of_birth = 'errors.field.date_format';
+    }
 
     // The custom fields an organiser can add. Keyed `cf_<id>` so they cannot
     // collide with a built-in name — the same prefix the extra-person cards
@@ -255,6 +271,12 @@ function RegisterForm() {
         ? (v === 'true' || v === 'false')
         : !!(v && String(v).trim());
       if (!filled) errs[`cf_${cf.id}`] = 'errors.field.required';
+    }
+    for (const cf of customFields) {
+      if (cf.field_type === 'date' && shown.has(cf.id) && customValues[cf.id]
+        && !parseRegistrationDate(customValues[cf.id])) {
+        errs[`cf_${cf.id}`] = 'errors.field.date_format';
+      }
     }
     // v1.0.7: formats. A phone number has to look like one; a text field
     // may ask for a phone number, an email address or digits only. Same
@@ -287,6 +309,8 @@ function RegisterForm() {
     if (!ep.gdpr_consent) errs.gdpr_consent = true;
     if (isFieldEnabled('gender') && isFieldRequired('gender') && !ep.gender) errs.gender = true;
     if (isFieldEnabled('date_of_birth') && isFieldRequired('date_of_birth') && !ep.date_of_birth) errs.date_of_birth = true;
+    if (isFieldEnabled('date_of_birth') && ep.date_of_birth
+      && !parseRegistrationDate(ep.date_of_birth)) errs.date_of_birth = 'errors.field.date_format';
     // v1.0.0k #6: extend required-field check to phone, address,
     // country, church_organisation. Previously only name, email,
     // gdpr, gender, DOB were validated for extras — if the
@@ -315,6 +339,8 @@ function RegisterForm() {
       // v1.0.7: and the same formats as the first person's.
       const fmt = fieldFormat(cf);
       if (fmt && shown.has(cf.id) && !fitsFormat(fmt, ep.customValues?.[cf.id])) errs[`cf_${cf.id}`] = true;
+      if (cf.field_type === 'date' && shown.has(cf.id) && ep.customValues?.[cf.id]
+        && !parseRegistrationDate(ep.customValues[cf.id])) errs[`cf_${cf.id}`] = 'errors.field.date_format';
     }
     if (!ep.copyFromPrimary && isFieldEnabled('phone') && !fitsFormat('phone', ep.phone)) errs.phone = true;
     return errs;
@@ -378,7 +404,11 @@ function RegisterForm() {
       };
       const optFields = ['gender', 'date_of_birth', 'phone', 'address', 'country', 'church_organisation'];
       for (const f of optFields) {
-        if (isFieldEnabled(f) && formData[f]) submission[f] = formData[f];
+        if (isFieldEnabled(f) && formData[f]) {
+          submission[f] = f === 'date_of_birth'
+            ? parseRegistrationDate(formData[f])
+            : formData[f];
+        }
       }
       if (formData.message) submission.message = formData.message;
       // v1.0.1d grouping v2. 'join' sends the code the registrant was
@@ -395,7 +425,9 @@ function RegisterForm() {
         submission.group_code = stemFromName(startCustomName);
       }
       // v1.0.7: only answers to fields the registrant was shown.
-      const cfAnswers = answersToSend(customFields, customValues, shownFor(customValues, personFrom(formData)));
+      const cfAnswers = answersToSend(
+        customFields, normalizedCustomValues(customValues), shownFor(customValues, personFrom(formData)),
+      );
       if (Object.keys(cfAnswers).length > 0) submission.custom_fields = cfAnswers;
       submission.preferred_language = lang;
       // Send preference requests only if user picked 'request' mode and prefs are enabled
@@ -429,7 +461,7 @@ function RegisterForm() {
           gdpr_consent: ep.gdpr_consent,
           preferred_language: lang,
         };
-        if (ep.date_of_birth) epSubmission.date_of_birth = ep.date_of_birth;
+        if (ep.date_of_birth) epSubmission.date_of_birth = parseRegistrationDate(ep.date_of_birth);
         if (ep.message) epSubmission.message = ep.message;
         // Copy shared fields from primary if toggle on. v0.55.1: gender is
         // deliberately NOT included here. Gender is a per-person attribute
@@ -471,7 +503,9 @@ function RegisterForm() {
         // the backend treats unset fields the same way for primary
         // and extras.
         // v1.0.7: and only those this person was shown.
-        const epAnswers = answersToSend(customFields, ep.customValues, shownFor(ep.customValues, epPerson(ep)));
+        const epAnswers = answersToSend(
+          customFields, normalizedCustomValues(ep.customValues), shownFor(ep.customValues, epPerson(ep)),
+        );
         if (Object.keys(epAnswers).length > 0) {
           epSubmission.custom_fields = epAnswers;
         }
@@ -617,7 +651,7 @@ function RegisterForm() {
   const primaryShown = shownFor(customValues, personFrom(formData));
   // v1.0.7: the right keyboard on a phone for a text field with a format.
   const inputTypeFor = (cf) => (
-    cf.field_type === 'number' ? 'number' : cf.field_type === 'date' ? 'date'
+    cf.field_type === 'number' ? 'number' : cf.field_type === 'date' ? 'text'
       : ({ phone: 'tel', email: 'email' }[fieldFormat(cf)] || 'text')
   );
 
@@ -747,10 +781,25 @@ function RegisterForm() {
                   <label className="block text-sm font-semibold text-gray-600 mb-1">
                     {t(labelKey)} {required && <span style={{ color: 'var(--alert-burgundy)' }}>*</span>}
                   </label>
-                  <input type={type} name={name} value={formData[name]}
-                    onChange={(e) => { clearFieldError(name); handleChange(e); }}
-                    required={required} aria-invalid={!!fieldErrors[name]}
-                    className={fieldInputClass(name)} />
+                  {type === 'date' ? (
+                    <RegistrationDateInput
+                      name={name}
+                      value={formData[name]}
+                      onChange={value => {
+                        clearFieldError(name);
+                        handleChange({ target: { name, value } });
+                      }}
+                      required={required}
+                      invalid={!!fieldErrors[name]}
+                      pickerLabel={`${t(labelKey)} calendar`}
+                      className={fieldInputClass(name)}
+                    />
+                  ) : (
+                    <input type={type} name={name} value={formData[name]}
+                      onChange={(e) => { clearFieldError(name); handleChange(e); }}
+                      required={required} aria-invalid={!!fieldErrors[name]}
+                      className={fieldInputClass(name)} />
+                  )}
                   {fieldError(name)}
                 </div>
               );
@@ -799,11 +848,25 @@ function RegisterForm() {
                     </label>
                   </div>
                 ) : (
-                  <input type={inputTypeFor(cf)} inputMode={fieldFormat(cf) === 'digits' ? 'numeric' : undefined}
-                    name={`cf_${cf.id}`}
-                    value={customValues[cf.id] || ''} onChange={e => handleCustomChange(cf.id, e.target.value)}
-                    required={cf.is_required} aria-invalid={!!fieldErrors[`cf_${cf.id}`]}
-                    className={fieldInputClass(`cf_${cf.id}`)} />
+                  cf.field_type === 'date' ? (
+                    <RegistrationDateInput
+                      name={`cf_${cf.id}`}
+                      value={customValues[cf.id]}
+                      onChange={value => handleCustomChange(cf.id, value)}
+                      required={cf.is_required}
+                      invalid={!!fieldErrors[`cf_${cf.id}`]}
+                      pickerLabel={`${cf.label} calendar`}
+                      className={fieldInputClass(`cf_${cf.id}`)}
+                    />
+                  ) : (
+                    <input type={inputTypeFor(cf)}
+                      inputMode={fieldFormat(cf) === 'digits' ? 'numeric' : undefined}
+                      name={`cf_${cf.id}`}
+                      value={customValues[cf.id] || ''}
+                      onChange={e => handleCustomChange(cf.id, e.target.value)}
+                      required={cf.is_required} aria-invalid={!!fieldErrors[`cf_${cf.id}`]}
+                      className={fieldInputClass(`cf_${cf.id}`)} />
+                  )
                 )}
                 {fieldError(`cf_${cf.id}`)}
               </div>
@@ -1094,9 +1157,16 @@ function RegisterForm() {
                     {isFieldEnabled('date_of_birth') && (
                       <div>
                         <label className="block text-xs text-gray-500 mb-1">{t('register.dob')}{isFieldRequired('date_of_birth') && <span className="ml-1" style={{ color: 'var(--alert-burgundy)' }}>*</span>}</label>
-                        <input type="date" value={ep.date_of_birth || ''}
-                          onChange={e => updateEp({ date_of_birth: e.target.value })}
-                          aria-invalid={!!extraPersonErrors[idx]?.['date_of_birth']} className={epInputClass(idx, 'date_of_birth')} />
+                        <RegistrationDateInput
+                          value={ep.date_of_birth}
+                          onChange={value => updateEp({ date_of_birth: value })}
+                          invalid={!!extraPersonErrors[idx]?.date_of_birth}
+                          pickerLabel={`${t('register.dob')} calendar`}
+                          className={epInputClass(idx, 'date_of_birth')}
+                        />
+                        {extraPersonErrors[idx]?.date_of_birth === 'errors.field.date_format' && (
+                          <p className="mt-1 text-xs text-burgundy">{t('errors.field.date_format')}</p>
+                        )}
                       </div>
                     )}
 
@@ -1181,11 +1251,28 @@ function RegisterForm() {
                               ))}
                             </div>
                           ) : (
-                            <input type={inputTypeFor(cf)} inputMode={fieldFormat(cf) === 'digits' ? 'numeric' : undefined}
-                              value={value}
-                              onChange={e => updateEp({ customValues: { ...(ep.customValues || {}), [cf.id]: e.target.value } })}
-                              required={cf.is_required} aria-invalid={!!extraPersonErrors[idx]?.[errKey]}
-                              className={cfClass} />
+                            cf.field_type === 'date' ? (
+                              <RegistrationDateInput
+                                value={value}
+                                onChange={date => updateEp({
+                                  customValues: { ...(ep.customValues || {}), [cf.id]: date },
+                                })}
+                                required={cf.is_required}
+                                invalid={!!extraPersonErrors[idx]?.[errKey]}
+                                pickerLabel={`${cf.label} calendar`}
+                                className={cfClass}
+                              />
+                            ) : (
+                              <input type={inputTypeFor(cf)}
+                                inputMode={fieldFormat(cf) === 'digits' ? 'numeric' : undefined}
+                                value={value}
+                                onChange={e => updateEp({ customValues: { ...(ep.customValues || {}), [cf.id]: e.target.value } })}
+                                required={cf.is_required} aria-invalid={!!extraPersonErrors[idx]?.[errKey]}
+                                className={cfClass} />
+                            )
+                          )}
+                          {extraPersonErrors[idx]?.[errKey] === 'errors.field.date_format' && (
+                            <p className="mt-1 text-xs text-burgundy">{t('errors.field.date_format')}</p>
                           )}
                         </div>
                       );
@@ -1369,9 +1456,7 @@ export default function RegisterPage() {
 
   return (
     <I18nProvider forRegistration={true}>
-      {/* colorScheme: light tells the browser to render native widgets
-          (date pickers, dropdown options, scrollbars) in their light
-          variants, even if the OS is in dark mode. */}
+      {/* Keep native dropdown options and scrollbars light even in dark mode. */}
       <div style={{ colorScheme: 'light' }}>
         <RegisterForm />
       </div>

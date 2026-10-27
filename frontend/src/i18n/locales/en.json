@@ -303,6 +303,7 @@
   "errors.export.zip_missing_files": "The backup ZIP is missing files: {files}",
   "errors.export.zip_unreadable": "Part of the backup could not be read: {files}",
   "errors.field.digits": "Please enter digits only.",
+  "errors.field.date_format": "Please use DD.MM.YYYY (for example 31.12.2000).",
   "errors.field.email": "Please enter a valid email address.",
   "errors.field.invalid": "This does not look right.",
   "errors.field.phone": "Please enter a valid phone number.",
