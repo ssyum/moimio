@@ -691,7 +691,17 @@ function RegisterForm() {
                       : { color: '#4682B4', fontSize: '12.7px', fontWeight: 700, letterSpacing: '0.045em', position: 'relative', top: '-0.05em' }}>io</span>
             </h1>
           </div>
-
+          <div className="relative inline-flex items-center bg-gold border-2 border-gold rounded-lg overflow-hidden">
+            <span className="pl-3 text-deep-navy text-sm pointer-events-none">🌐</span>
+            <select value={lang} onChange={e => setLangOverride(e.target.value)}
+              style={{ background: 'transparent' }}
+              className="appearance-none text-[13px] font-semibold text-deep-navy pl-1.5 pr-7 py-1.5 cursor-pointer focus:outline-none">
+              {SUPPORTED_LANGS.map(l => (
+                <option key={l.code} value={l.code} style={{ background: '#1e3a5f', color: 'white' }}>{l.label}</option>
+              ))}
+            </select>
+            <span className="absolute right-2 text-deep-navy text-[10px] pointer-events-none">▼</span>
+          </div>
         </div>
 
         <div className="bg-white shadow-sm border border-gray-100 p-6" style={{ borderRadius: radius }}>
@@ -1401,19 +1411,6 @@ function RegisterForm() {
           )}
         </div>
 
-        <div className="flex justify-center mt-5 mb-2">
-            <div className="relative inline-flex items-center bg-gold border-2 border-gold rounded-lg overflow-hidden">
-              <span className="pl-3 text-deep-navy text-sm pointer-events-none">🌐</span>
-              <select value={lang} onChange={e => setLangOverride(e.target.value)}
-                style={{ background: 'transparent' }}
-                className="appearance-none text-[13px] font-semibold text-deep-navy pl-1.5 pr-7 py-1.5 cursor-pointer focus:outline-none">
-                {SUPPORTED_LANGS.map(l => (
-                  <option key={l.code} value={l.code} style={{ background: '#1e3a5f', color: 'white' }}>{l.label}</option>
-                ))}
-              </select>
-              <span className="absolute right-2 text-deep-navy text-[10px] pointer-events-none">▼</span>
-            </div>
-          </div>
           <p className="text-center text-xs text-gray-300 mt-2">
             {/* v1.0-pre #19: link "Powered by Moimio" footer to moimio.app
                 so anyone who's curious about the platform behind the form
