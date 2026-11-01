@@ -468,10 +468,10 @@ def send_registration_receipt(
 
 
 def _safe_template_html(value: str) -> str:
-    """Escape editable copy while retaining the templates' bold emphasis."""
+    """Escape editable copy while retaining bold emphasis and line breaks."""
     escaped = _html_escape(value)
-    return escaped.replace("&lt;strong&gt;", "<strong>").replace("&lt;/strong&gt;", "</strong>")
-
+    escaped = escaped.replace("&lt;strong&gt;", "<strong>").replace("&lt;/strong&gt;", "</strong>")
+    return escaped.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>")
 
 def send_password_reset_email(to_email: str, full_name: str, reset_url: str) -> bool:
     """Password-reset email. English only — admin/staff-facing. v0.70's

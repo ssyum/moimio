@@ -170,4 +170,12 @@ def test_confirmation_email_uses_custom_copy(monkeypatch):
 
     assert sent["subject"] == "Please confirm for Gathering 2026"
     assert "Finish signing up for Gathering 2026" in sent["html"]
+    assert (
+        "Finish signing up for Gathering 2026<br>"
+        "Next line &lt;script&gt;alert(1)&lt;/script&gt;"
+    ) in sent["html"]
     assert "Welcome Sam" in sent["text"]
+    assert (
+        "Finish signing up for Gathering 2026\r\n"
+        "Next line <script>alert(1)</script>"
+    ) in sent["text"]
