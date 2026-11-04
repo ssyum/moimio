@@ -2,7 +2,12 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { cfSortValue } from '../utils/customFieldSort';
 import { INFO, isColumnField } from '../utils/fieldConditions';
 import { normalizeSearch as norm } from '../services/searchNormalize';
-import { participants as participantsApi, customFields as cfApi, getToken } from '../services/api';
+import {
+  participants as participantsApi,
+  minorForms as minorFormsApi,
+  customFields as cfApi,
+  getToken,
+} from '../services/api';
 import { useDateFormat } from '../hooks/useDateFormat';
 import { useI18n } from '../hooks/useI18n';
 import { useToast } from '../hooks/useToast';
@@ -24,6 +29,7 @@ import {
   daysSinceRegistration,
   registrationAgeTier,
 } from '../utils/daysSinceRegistration';
+import { ageOnEventDate } from '../utils/ageOnEventDate';
 
 // Built-in columns with optional field name for data-detection
 const BUILTIN_COLUMNS = [
@@ -34,6 +40,7 @@ const BUILTIN_COLUMNS = [
   { id: 'status', label: 'people.col.status', default: true },
   { id: 'gender', label: 'people.col.gender', field: 'gender' },
   { id: 'date_of_birth', label: 'people.col.date_of_birth', field: 'date_of_birth' },
+  { id: 'age', label: 'people.col.age', default: true },
   { id: 'phone', label: 'people.col.phone', field: 'phone' },
   { id: 'address', label: 'people.col.address', field: 'address' },
   { id: 'country', label: 'people.col.country', field: 'country' },
@@ -89,7 +96,7 @@ const EDITABLE_FIELDS = {
 };
 const ALL_STATUSES = ['pending', 'confirmed', 'cancelled'];
 
-export default function PeopleTable({ eventId, eventTimezone, userId, participantList, noteCounts, isAdmin, canDelete, marksPerm, onDataChange, onOpenNotes, onDelete, initialStatusFilter = '' }) {
+export default function PeopleTable({ eventId, eventTimezone, eventStartDate, userId, participantList, noteCounts, isAdmin, canDelete, marksPerm, onDataChange, onOpenNotes, onDelete, initialStatusFilter = '' }) {
   // v0.50f-1: mark modal opens for everyone (read is implicit). The modal
   // itself renders in view-only mode when canAssign is false. isAdmin
   // bypasses.
@@ -158,16 +165,26 @@ export default function PeopleTable({ eventId, eventTimezone, userId, participan
   const daysColumnMigrationKey = eventId && userId
     ? `moimio_people_days_column_v1_${userId}_${eventId}`
     : null;
+  const ageColumnMigrationKey = eventId && userId
+    ? `moimio_people_age_column_v1_${userId}_${eventId}`
+    : null;
   const [visibleCols, setVisibleCols] = useState(() => {
     if (colsStorageKey) {
       try {
         const saved = localStorage.getItem(colsStorageKey);
         if (saved) {
           const columns = JSON.parse(saved);
-          if (daysColumnMigrationKey && !localStorage.getItem(daysColumnMigrationKey)) {
-            const migrated = [...new Set([...columns, 'days_since_registration'])];
+          const needsDaysColumn = daysColumnMigrationKey && !localStorage.getItem(daysColumnMigrationKey);
+          const needsAgeColumn = ageColumnMigrationKey && !localStorage.getItem(ageColumnMigrationKey);
+          if (needsDaysColumn || needsAgeColumn) {
+            const additions = [
+              ...(needsDaysColumn ? ['days_since_registration'] : []),
+              ...(needsAgeColumn ? ['age'] : []),
+            ];
+            const migrated = [...new Set([...columns, ...additions])];
             localStorage.setItem(colsStorageKey, JSON.stringify(migrated));
-            localStorage.setItem(daysColumnMigrationKey, '1');
+            if (needsDaysColumn) localStorage.setItem(daysColumnMigrationKey, '1');
+            if (needsAgeColumn) localStorage.setItem(ageColumnMigrationKey, '1');
             return new Set(migrated);
           }
           return new Set(columns);
@@ -176,6 +193,9 @@ export default function PeopleTable({ eventId, eventTimezone, userId, participan
     }
     if (daysColumnMigrationKey) {
       try { localStorage.setItem(daysColumnMigrationKey, '1'); } catch {}
+    }
+    if (ageColumnMigrationKey) {
+      try { localStorage.setItem(ageColumnMigrationKey, '1'); } catch {}
     }
     return new Set(DEFAULT_COLS);
   });
@@ -264,7 +284,9 @@ export default function PeopleTable({ eventId, eventTimezone, userId, participan
   const [exportingIds, setExportingIds] = useState(new Set());
   // v1.0-pre: per-row resend-confirmation busy state. Same pattern.
   const [resendingIds, setResendingIds] = useState(new Set());
-  const [remindingIds, setRemindingIds] = useState(new Set());
+  const [sendingParticipantEmailIds, setSendingParticipantEmailIds] = useState(new Set());
+  const [minorFormSubmissions, setMinorFormSubmissions] = useState(new Map());
+  const [sendingMinorFormIds, setSendingMinorFormIds] = useState(new Set());
   const handleExportParticipant = async (p) => {
     if (!p || !eventId || exportingIds.has(p.id)) return;
     setExportingIds(prev => new Set(prev).add(p.id));
@@ -325,25 +347,116 @@ export default function PeopleTable({ eventId, eventTimezone, userId, participan
     }
   };
 
-  const handlePaymentReminder = async (p, days) => {
-    if (!p || !eventId || days <= 3 || p.registration_status !== 'pending' || remindingIds.has(p.id)) return;
-    setRemindingIds(prev => new Set(prev).add(p.id));
+  const handleParticipantStatusEmail = async (p, days) => {
+    if (!p || !eventId || sendingParticipantEmailIds.has(p.id)) return;
+    const isConfirmed = p.registration_status === 'confirmed';
+    if (!isConfirmed && (p.registration_status !== 'pending' || days <= 3)) return;
+    setSendingParticipantEmailIds(prev => new Set(prev).add(p.id));
     try {
-      await participantsApi.paymentReminder(eventId, p.id);
-      showToast(t('people.payment_reminder.success', { name: `${p.first_name} ${p.last_name}` }), 'success');
+      if (isConfirmed) {
+        await participantsApi.finalConfirmation(eventId, p.id);
+      } else {
+        await participantsApi.paymentReminder(eventId, p.id);
+      }
+      const messageKey = isConfirmed
+        ? 'people.final_confirmation.success'
+        : 'people.payment_reminder.success';
+      showToast(t(messageKey, { name: `${p.first_name} ${p.last_name}` }), 'success');
     } catch (err) {
+      const fallbackKey = isConfirmed
+        ? 'people.final_confirmation.error'
+        : 'people.payment_reminder.error';
       const fallbackErr = err?.i18nKey || err?.friendlyKey
         ? err
-        : new Error(t('people.payment_reminder.error'));
+        : new Error(t(fallbackKey));
       showToast(fallbackErr, 'error');
     } finally {
-      setRemindingIds(prev => {
+      setSendingParticipantEmailIds(prev => {
         const next = new Set(prev);
         next.delete(p.id);
         return next;
       });
     }
   };
+
+  const handleSendMinorForm = async (p, age) => {
+    if (!p || !eventId || age >= 18 || sendingMinorFormIds.has(p.id)) return;
+    setSendingMinorFormIds(prev => new Set(prev).add(p.id));
+    try {
+      await participantsApi.minorFormEmail(eventId, p.id);
+      showToast(t('minor_form.email_sent', { name: `${p.first_name} ${p.last_name}` }), 'success');
+    } catch (err) {
+      const fallbackErr = err?.i18nKey || err?.friendlyKey
+        ? err
+        : new Error(t('minor_form.email_error'));
+      showToast(fallbackErr, 'error');
+    } finally {
+      setSendingMinorFormIds(prev => {
+        const next = new Set(prev);
+        next.delete(p.id);
+        return next;
+      });
+    }
+  };
+
+  const handleDownloadMinorForm = async (p) => {
+    try {
+      const response = await fetch(
+        `/api/events/${eventId}/participants/${p.id}/minor-form-submission`,
+        { headers: { Authorization: `Bearer ${getToken()}` } }
+      );
+      if (!response.ok) {
+        let payload = null;
+        try { payload = await response.json(); } catch (_) { /* non-JSON error */ }
+        const error = new Error(t(payload?.detail?.key || 'minor_form.submission_error'));
+        if (payload?.detail?.key) error.i18nKey = payload.detail.key;
+        throw error;
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `minor-form-${p.id}.pdf`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      showToast(err, 'error');
+    }
+  };
+
+  const handleDeleteMinorForm = async (p) => {
+    const ok = await confirm({
+      title: t('minor_form.delete_confirm.title'),
+      message: t('minor_form.delete_confirm.body', { name: `${p.first_name} ${p.last_name}` }),
+      confirmLabel: t('minor_form.delete_confirm.confirm'),
+    });
+    if (!ok) return;
+    try {
+      await minorFormsApi.deleteSubmission(eventId, p.id);
+      setMinorFormSubmissions(current => {
+        const next = new Map(current);
+        next.delete(p.id);
+        return next;
+      });
+      showToast(t('minor_form.submission_deleted'), 'success');
+    } catch (err) {
+      showToast(err, 'error');
+    }
+  };
+
+  useEffect(() => {
+    if (!eventId || !canDelete) return undefined;
+    let active = true;
+    minorFormsApi.listSubmissions(eventId)
+      .then(({ submissions }) => {
+        if (active) {
+          setMinorFormSubmissions(new Map(submissions.map(item => [item.participant_id, item])));
+        }
+      })
+      .catch(error => {
+        if (active) showToast(error, 'error');
+      });
+    return () => { active = false; };
+  }, [eventId, canDelete, showToast]);
 
   useEffect(() => {
     if (!eventId) return;
@@ -527,6 +640,10 @@ export default function PeopleTable({ eventId, eventTimezone, userId, participan
         case 'status': va = a.registration_status; vb = b.registration_status; break;
         case 'gender': va = a.gender || ''; vb = b.gender || ''; break;
         case 'date_of_birth': va = a.date_of_birth || ''; vb = b.date_of_birth || ''; break;
+        case 'age':
+          va = ageOnEventDate(a.date_of_birth, eventStartDate) ?? -1;
+          vb = ageOnEventDate(b.date_of_birth, eventStartDate) ?? -1;
+          break;
         case 'registered_at': va = a.created_at || ''; vb = b.created_at || ''; break;
         case 'days_since_registration':
           va = daysSinceRegistration(a.created_at, eventTimezone, counterToday) ?? -1;
@@ -544,7 +661,10 @@ export default function PeopleTable({ eventId, eventTimezone, userId, participan
       return 0;
     });
     return list;
-  }, [participantList, search, statusFilter, sortCol, sortDir, markDefs, markAssignments, eventTimezone, counterToday]);
+  }, [
+    participantList, search, statusFilter, sortCol, sortDir, markDefs,
+    markAssignments, eventTimezone, counterToday, customFieldDefs, eventStartDate,
+  ]);
 
   const startEdit = async (p, field) => {
     if (!isAdmin) return;
@@ -1078,6 +1198,41 @@ export default function PeopleTable({ eventId, eventTimezone, userId, participan
           <span style={{ color: 'var(--text-muted)' }}>
             {p.date_of_birth ? formatDate(p.date_of_birth) : '—'}
           </span>);
+      case 'age': {
+        const age = ageOnEventDate(p.date_of_birth, eventStartDate);
+        if (age === null) return <span style={{ color: 'var(--text-subtle)' }}>—</span>;
+        const submission = minorFormSubmissions.get(p.id);
+        return (
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <span className="text-xs">{age}</span>
+            {canDelete && age < 18 && p.registration_status !== 'cancelled' && (
+              <button type="button" onClick={() => handleSendMinorForm(p, age)}
+                disabled={sendingMinorFormIds.has(p.id)}
+                title={t('minor_form.email_hint')}
+                aria-label={t('minor_form.email_cta')}
+                className="text-xs font-semibold hover:underline disabled:opacity-50"
+                style={{ color: 'var(--io-accent)' }}>
+                {sendingMinorFormIds.has(p.id) ? '⟳' : '✉'} {t('minor_form.email_cta')}
+              </button>
+            )}
+            {canDelete && submission && (
+              <>
+                <span className="text-xs font-semibold" style={{ color: 'var(--success-color)' }}>
+                  {t('minor_form.submission_received')}
+                </span>
+                <button type="button" onClick={() => handleDownloadMinorForm(p)}
+                  className="text-xs hover:underline" style={{ color: 'var(--io-accent)' }}>
+                  {t('minor_form.download')}
+                </button>
+                <button type="button" onClick={() => handleDeleteMinorForm(p)}
+                  className="text-xs hover:underline" style={{ color: 'var(--alert-burgundy)' }}>
+                  {t('minor_form.delete')}
+                </button>
+              </>
+            )}
+          </span>
+        );
+      }
       case 'phone':
         return renderEditableField(p, 'phone',
           <span style={{ color: 'var(--text-muted)' }}>{p.phone || '—'}</span>);
@@ -1121,6 +1276,9 @@ export default function PeopleTable({ eventId, eventTimezone, userId, participan
       case 'days_since_registration': {
         const days = daysSinceRegistration(p.created_at, eventTimezone, counterToday);
         if (days === null) return <span style={{ color: 'var(--text-subtle)' }}>—</span>;
+        const isConfirmed = p.registration_status === 'confirmed';
+        const canSendEmail = isConfirmed || (p.registration_status === 'pending' && days > 3);
+        const actionKey = isConfirmed ? 'people.final_confirmation' : 'people.payment_reminder';
         const colorsByTier = {
           confirmed: { background: 'var(--success-tint)', color: 'var(--success-color)' },
           overdue: { background: 'var(--alert-tint)', color: 'var(--alert-burgundy)' },
@@ -1131,17 +1289,17 @@ export default function PeopleTable({ eventId, eventTimezone, userId, participan
         return (
           <span className="inline-flex items-center gap-2">
             <span className="text-xs font-semibold px-1.5 py-0.5 rounded" style={colors}>{days}</span>
-            {canDelete && days > 3 && p.registration_status === 'pending' && (
+            {canDelete && canSendEmail && (
               <button
                 type="button"
-                onClick={() => handlePaymentReminder(p, days)}
-                disabled={remindingIds.has(p.id)}
-                title={t('people.payment_reminder.hint')}
-                aria-label={t('people.payment_reminder.cta')}
+                onClick={() => handleParticipantStatusEmail(p, days)}
+                disabled={sendingParticipantEmailIds.has(p.id)}
+                title={t(`${actionKey}.hint`)}
+                aria-label={t(`${actionKey}.cta`)}
                 className="text-xs font-semibold hover:underline disabled:opacity-50"
                 style={{ color: 'var(--io-accent)' }}
               >
-                {remindingIds.has(p.id) ? <span className="animate-spin inline-block">⟳</span> : '✉'} {t('people.payment_reminder.cta')}
+                {sendingParticipantEmailIds.has(p.id) ? <span className="animate-spin inline-block">⟳</span> : '✉'} {t(`${actionKey}.cta`)}
               </button>
             )}
           </span>
@@ -1507,6 +1665,7 @@ export default function PeopleTable({ eventId, eventTimezone, userId, participan
                 case 'group_code': return !!p.group_code;
                 case 'gender': return !!p.gender;
                 case 'date_of_birth': return !!p.date_of_birth;
+                case 'age': return !!p.date_of_birth && !!eventStartDate;
                 case 'phone': return !!p.phone;
                 case 'address': return !!p.address;
                 case 'country': return !!p.country;

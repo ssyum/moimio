@@ -11,7 +11,9 @@ export function getToken() { return accessToken; }
 export function clearToken() { accessToken = null; }
 
 async function request(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const headers = { ...options.headers };
+  if (!isFormData && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
   // v0.70d-2b (R6): errors thrown by request() now carry .status and
   // .isNetwork so callers can distinguish HTTP error responses (bad
@@ -249,6 +251,33 @@ export const participants = {
   delete: (id) => request(`/participants/${id}`, { method: 'DELETE' }),
   paymentReminder: (eventId, participantId) =>
     request(`/events/${eventId}/participants/${participantId}/payment-reminder`, { method: 'POST' }),
+  finalConfirmation: (eventId, participantId) =>
+    request(`/events/${eventId}/participants/${participantId}/final-confirmation`, { method: 'POST' }),
+  minorFormEmail: (eventId, participantId) =>
+    request(`/events/${eventId}/participants/${participantId}/minor-form-email`, { method: 'POST' }),
+};
+
+export const minorForms = {
+  getTemplate: (eventId) => request(`/events/${eventId}/minor-form-template`),
+  uploadTemplate: (eventId, file) => {
+    const body = new FormData();
+    body.append('file', file);
+    return request(`/events/${eventId}/minor-form-template`, { method: 'POST', body });
+  },
+  deleteTemplate: (eventId) =>
+    request(`/events/${eventId}/minor-form-template`, { method: 'DELETE' }),
+  listSubmissions: (eventId) => request(`/events/${eventId}/minor-form-submissions`),
+  deleteSubmission: (eventId, participantId) =>
+    request(`/events/${eventId}/participants/${participantId}/minor-form-submission`, { method: 'DELETE' }),
+  getPublicUpload: (token) => request(`/public/minor-form-upload/${encodeURIComponent(token)}`),
+  uploadPublicSubmission: (token, file) => {
+    const body = new FormData();
+    body.append('file', file);
+    return request(`/public/minor-form-upload/${encodeURIComponent(token)}`, {
+      method: 'POST',
+      body,
+    });
+  },
 };
 
 // ─── Allocation Categories ───

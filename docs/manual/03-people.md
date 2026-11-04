@@ -24,11 +24,12 @@ Open **People** from the sidebar. You see a table with one row per registration.
 - **Group code** — the code they registered with, or the one Moimio generated for them. Hover over it (or long-press on a phone) to see who else shares that code.
 - **Status** — Pending / Confirmed / Cancelled (colour-coded).
 - **Registered** — date and time of the registration.
-- **Days since registration** — calendar days since signup in the event's timezone (registration day is day 0). Pending registrations show grey for days 0–3, yellow for days 4–7, and red after day 7. Confirmed registrations are green. For a pending registration after day 3, **Remind** sends the payment reminder email; it can be sent again if needed.
+- **Days since registration** — calendar days since signup in the event's timezone (registration day is day 0). Pending registrations show grey for days 0–3, yellow for days 4–7, and red after day 7. Confirmed registrations are green. For a pending registration after day 3, **Remind** sends the payment reminder email; it can be sent again if needed. For any confirmed registration, **Confirm** sends the final status-confirmation email.
+- **Age** — age on the event's start date. If the date of birth or event start date is missing, Moimio shows a dash. For a participant who will be under 18, **Send form** emails the event's consent-form PDF and a private upload link. After the form is uploaded, event admins can download or delete it from this column.
 - **Notes** — opens the notes for that participant; a small number shows how many notes there are.
 - **Actions** — per-row controls: **✉ Resend** (resend the registration email; hidden for cancelled participants), **↓ Export data** (the participant's full GDPR data export as JSON) and **Remove** (soft-delete the participant and send the editable registration-cancellation email). Export data and Remove are for event admins only.
 
-Click **Columns** to show or hide more columns: **Gender**, **Date of Birth**, **Phone**, **Address**, **Country**, **Church / Organisation** and **Message** (these appear in the list once at least one participant has filled them in), **Checked In**, and every custom field from your registration form (under **Custom Fields**). You can also drag a column header (by its ⠿ handle) to change the column order.
+Click **Columns** to show or hide more columns: **Age**, **Gender**, **Date of Birth**, **Phone**, **Address**, **Country**, **Church / Organisation** and **Message** (these appear in the list once at least one participant has filled them in), **Checked In**, and every custom field from your registration form (under **Custom Fields**). You can also drag a column header (by its ⠿ handle) to change the column order.
 
 The table supports:
 

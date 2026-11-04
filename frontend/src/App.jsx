@@ -28,6 +28,7 @@ const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const ConfirmPage = lazy(() => import('./pages/ConfirmPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const MinorFormUploadPage = lazy(() => import('./pages/MinorFormUploadPage'));
 
 // Admin routes stay eager — see rationale above.
 import EventsPage from './pages/EventsPage';
@@ -128,6 +129,7 @@ function App() {
                 <Route path="/confirm/:token" element={<ConfirmPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/minor-form-upload/:token" element={<MinorFormUploadPage />} />
 
                 {/* Admin routes (eager) */}
                 <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>

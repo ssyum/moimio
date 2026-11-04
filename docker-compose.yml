@@ -39,6 +39,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:6120}
       RATE_LIMIT_REGISTRATION: ${RATE_LIMIT_REGISTRATION:-60}
+      PRIVATE_UPLOAD_DIR: /data/private_uploads
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -79,6 +80,7 @@ services:
       - "${BACKEND_PORT:-6121}:8000"
     volumes:
       - ./backend/app:/app/app
+      - ${PRIVATE_UPLOAD_HOST_DIR:-./data/private_uploads}:/data/private_uploads
     # upgrade.sh waits for this to report "healthy" before declaring an
     # upgrade good. Without it, `docker compose ps` never shows a health
     # state for the backend and every upgrade looked like a failure.

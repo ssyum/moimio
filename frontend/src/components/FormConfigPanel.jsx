@@ -8,6 +8,7 @@ import { useToast } from '../hooks/useToast';
 
 import TranslatedError from './TranslatedError';
 import EmailTemplatesPanel from './EmailTemplatesPanel';
+import MinorFormTemplatePanel from './MinorFormTemplatePanel';
 import FieldConditionEditor, { conditionSummary } from './FieldConditionEditor';
 import { BUILTIN_KINDS, CUSTOM_KINDS, FORMATS, INFO } from '../utils/fieldConditions';
 
@@ -605,6 +606,7 @@ export default function FormConfigPanel({ eventId, isAdmin }) {
           </div>
         )}
       </div>
+      {isAdmin && <MinorFormTemplatePanel eventId={eventId} />}
       {isSuperAdmin && <EmailTemplatesPanel eventId={eventId} />}
       <ConfirmOverlay />
       <ToastHost />

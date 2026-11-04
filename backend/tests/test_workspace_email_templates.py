@@ -42,6 +42,9 @@ def test_email_template_validation_accepts_known_placeholders():
             "receipt_subject": "You're registered for {event}",
             "receipt_hi": "Hi {name}",
             "reminder_body": "Please pay for {event} within {days} days.",
+            "final_confirmation_subject": "Your place at {event} is confirmed",
+            "final_confirmation_hi": "Hi {name}",
+            "final_confirmation_body": "Your registration for {event} is confirmed.",
             "cancellation_body": "Your place at {event} was cancelled.",
         },
     }) == {
@@ -49,6 +52,9 @@ def test_email_template_validation_accepts_known_placeholders():
             "receipt_subject": "You're registered for {event}",
             "receipt_hi": "Hi {name}",
             "reminder_body": "Please pay for {event} within {days} days.",
+            "final_confirmation_subject": "Your place at {event} is confirmed",
+            "final_confirmation_hi": "Hi {name}",
+            "final_confirmation_body": "Your registration for {event} is confirmed.",
             "cancellation_body": "Your place at {event} was cancelled.",
         },
     }
@@ -237,6 +243,31 @@ def test_registration_cancellation_email_uses_editable_copy_and_escapes_values(m
     assert "Hello &lt;Sam&gt;" in sent["html"]
     assert "Gathering &lt;2026&gt;" in sent["html"]
     assert "<Sam>" in sent["text"]
+
+
+def test_final_registration_confirmation_email_uses_editable_copy(monkeypatch):
+    sent = {}
+
+    def fake_send(to_email, subject, html_body, text_body=None):
+        sent.update(subject=subject, html=html_body, text=text_body)
+        return True
+
+    monkeypatch.setattr(email, "send_email", fake_send)
+    email.send_final_registration_confirmation_email(
+        "person@example.org",
+        "Sam",
+        "Gathering 2026",
+        email_strings={
+            "final_confirmation_subject": "Confirmed for {event}",
+            "final_confirmation_hi": "Hello {name}",
+            "final_confirmation_body": "Your place at {event} is confirmed.",
+            "final_confirmation_closing": "See you soon",
+        },
+    )
+
+    assert sent["subject"] == "Confirmed for Gathering 2026"
+    assert "Your place at Gathering 2026 is confirmed." in sent["html"]
+    assert "Hello Sam" in sent["text"]
 
 
 def test_days_since_registration_uses_event_calendar_day():

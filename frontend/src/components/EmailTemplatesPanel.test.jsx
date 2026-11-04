@@ -37,6 +37,16 @@ const templates = {
     receipt_group_code_title: 'Group code',
     receipt_group_code_hint: 'Share your group code',
     receipt_closing: 'See you soon',
+    minor_form_subject: 'Consent form for {event}',
+    minor_form_preheader: 'Complete the attached form',
+    minor_form_hi: 'Hi {name}',
+    minor_form_body: 'Upload your form here: {upload_link}',
+    minor_form_closing: 'Thank you',
+    final_confirmation_subject: 'Your place at {event} is confirmed',
+    final_confirmation_preheader: 'Your registration is confirmed',
+    final_confirmation_hi: 'Hi {name}',
+    final_confirmation_body: 'Your registration for {event} is confirmed.',
+    final_confirmation_closing: 'See you soon',
     reminder_subject: 'Payment reminder for {event}',
     reminder_preheader: 'A reminder',
     reminder_hi: 'Hi {name}',
@@ -58,19 +68,25 @@ describe('EmailTemplatesPanel', () => {
     email.test.mockResolvedValue({ detail: 'sent' });
   });
 
-  it('keeps both email editors separate, collapsible, editable, and testable', async () => {
+  it('keeps email editors separate, collapsible, editable, and testable', async () => {
     render(<EmailTemplatesPanel eventId="event-1" />);
 
     const receiptSummary = screen.getByText('workspace.email.receipt');
     const confirmationSummary = screen.getByText('workspace.email.confirmation');
+    const minorFormSummary = screen.getByText('workspace.email.minor_form');
+    const finalConfirmationSummary = screen.getByText('workspace.email.final_confirmation');
     const reminderSummary = screen.getByText('workspace.email.reminder');
     const cancellationSummary = screen.getByText('workspace.email.cancellation');
     const receipt = receiptSummary.closest('details');
     const confirmation = confirmationSummary.closest('details');
+    const minorForm = minorFormSummary.closest('details');
+    const finalConfirmation = finalConfirmationSummary.closest('details');
     const reminder = reminderSummary.closest('details');
     const cancellation = cancellationSummary.closest('details');
     expect(receipt.open).toBe(false);
     expect(confirmation.open).toBe(false);
+    expect(minorForm.open).toBe(false);
+    expect(finalConfirmation.open).toBe(false);
     expect(reminder.open).toBe(false);
     expect(cancellation.open).toBe(false);
 
@@ -113,6 +129,40 @@ describe('EmailTemplatesPanel', () => {
         expect.objectContaining({
           en: expect.objectContaining({
             reminder_body: 'Payment for {event} is due after {days} days.',
+          }),
+        }),
+      );
+    });
+
+    fireEvent.click(minorFormSummary);
+    const minorFormBody = within(minorForm).getByLabelText('workspace.email.field.body');
+    expect(minorFormBody.value).toBe('Upload your form here: {upload_link}');
+    fireEvent.change(minorFormBody, {
+      target: { value: 'Please upload the signed PDF here: {upload_link}' },
+    });
+    fireEvent.click(within(minorForm).getByRole('button', { name: 'common.save' }));
+    await waitFor(() => {
+      expect(workspaceSettings.updateEmailTemplates).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          en: expect.objectContaining({
+            minor_form_body: 'Please upload the signed PDF here: {upload_link}',
+          }),
+        }),
+      );
+    });
+
+    fireEvent.click(finalConfirmationSummary);
+    const finalConfirmationBody = within(finalConfirmation).getByLabelText('workspace.email.field.body');
+    expect(finalConfirmationBody.value).toBe('Your registration for {event} is confirmed.');
+    fireEvent.change(finalConfirmationBody, {
+      target: { value: 'We confirm your place at {event}.' },
+    });
+    fireEvent.click(within(finalConfirmation).getByRole('button', { name: 'common.save' }));
+    await waitFor(() => {
+      expect(workspaceSettings.updateEmailTemplates).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          en: expect.objectContaining({
+            final_confirmation_body: 'We confirm your place at {event}.',
           }),
         }),
       );

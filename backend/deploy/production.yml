@@ -57,6 +57,7 @@ services:
       LOG_LEVEL:    ${LOG_LEVEL:-INFO}
       CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS must be set}
       RATE_LIMIT_REGISTRATION: ${RATE_LIMIT_REGISTRATION:-60}
+      PRIVATE_UPLOAD_DIR: /data/private_uploads
       # SMTP — the SaaS provisioner injects Scaleway TEM credentials
       # (send.moimio.app) by default. Self-hoster overrides via
       # tenant-specific .env are supported once admin-UI per-tenant
@@ -104,6 +105,8 @@ services:
       MOIMIO_DEMO_MAIL_URL: ${MOIMIO_DEMO_MAIL_URL:-}
     networks:
       - internal
+    volumes:
+      - private_uploads:/data/private_uploads
     depends_on:
       db:
         condition: service_healthy
@@ -131,6 +134,7 @@ services:
 
 volumes:
   pgdata:
+  private_uploads:
 
 networks:
   internal:

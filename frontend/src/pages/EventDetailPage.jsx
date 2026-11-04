@@ -811,6 +811,7 @@ export default function EventDetailPage() {
         <PeopleTable
           eventId={eventId}
           eventTimezone={event?.timezone || 'UTC'}
+          eventStartDate={event?.start_date || null}
           userId={userId}
           participantList={participantList}
           noteCounts={noteCounts}

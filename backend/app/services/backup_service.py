@@ -434,6 +434,10 @@ NOT_CARRIED: dict[str, str] = {
     # can see who had what. It is a list to read, not a list to apply:
     # restore never reads it, and this entry is unchanged by it.
     "event_user_assignments": "not_meaningful_elsewhere",
+    # Opaque keys point into the private upload directory, not the event ZIP.
+    # Back up that directory separately from the database.
+    "minor_form_templates": "instance_state",
+    "minor_form_submissions": "instance_state",
 }
 
 # Which tables belong to an event is computed by walking the foreign keys to
@@ -2411,4 +2415,3 @@ def _safe_enum(enum_cls, value: str | None, default):
         return enum_cls(value)
     except ValueError:
         return default
-

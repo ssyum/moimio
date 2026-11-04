@@ -20,6 +20,7 @@ from app.api.capabilities import router as capabilities_router
 from app.api.auth import router as auth_router
 from app.api.events import router as events_router
 from app.api.participants import router as participants_router
+from app.api.minor_forms import router as minor_forms_router
 from app.api.allocations import router as allocations_router
 from app.api.custom_fields import router as custom_fields_router
 from app.api.export import router as export_router, restore_router
@@ -179,6 +180,7 @@ app.include_router(billing_info_router)
 app.include_router(auth_router)
 app.include_router(events_router)
 app.include_router(participants_router)
+app.include_router(minor_forms_router)
 app.include_router(custom_fields_router)
 app.include_router(export_router)
 app.include_router(restore_router)

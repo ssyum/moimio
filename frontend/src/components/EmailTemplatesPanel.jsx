@@ -32,6 +32,20 @@ const FIELDS = {
     ['receipt_group_code_hint', 'group_hint'],
     ['receipt_closing', 'closing'],
   ],
+  minor_form: [
+    ['minor_form_subject', 'subject'],
+    ['minor_form_preheader', 'preheader'],
+    ['minor_form_hi', 'greeting'],
+    ['minor_form_body', 'body'],
+    ['minor_form_closing', 'closing'],
+  ],
+  final_confirmation: [
+    ['final_confirmation_subject', 'subject'],
+    ['final_confirmation_preheader', 'preheader'],
+    ['final_confirmation_hi', 'greeting'],
+    ['final_confirmation_body', 'body'],
+    ['final_confirmation_closing', 'closing'],
+  ],
   reminder: [
     ['reminder_subject', 'subject'],
     ['reminder_preheader', 'preheader'],
@@ -51,6 +65,8 @@ const FIELDS = {
 const TEXTAREA_FIELDS = new Set([
   'confirm_body', 'confirm_fallback_pre', 'confirm_footer',
   'receipt_body', 'receipt_group_code_hint', 'receipt_closing',
+  'minor_form_body', 'minor_form_closing',
+  'final_confirmation_body',
   'reminder_body', 'reminder_closing', 'cancellation_body', 'cancellation_closing',
 ]);
 
@@ -151,6 +167,24 @@ export default function EmailTemplatesPanel({ eventId }) {
       />
       <EmailTemplateSection
         kind="confirmation"
+        templates={templates}
+        loading={loading || !loaded}
+        saving={saving}
+        saved={saved}
+        onChange={updateField}
+        onSave={handleSave}
+      />
+      <EmailTemplateSection
+        kind="minor_form"
+        templates={templates}
+        loading={loading || !loaded}
+        saving={saving}
+        saved={saved}
+        onChange={updateField}
+        onSave={handleSave}
+      />
+      <EmailTemplateSection
+        kind="final_confirmation"
         templates={templates}
         loading={loading || !loaded}
         saving={saving}

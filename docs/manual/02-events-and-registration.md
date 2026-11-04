@@ -74,7 +74,11 @@ Changes save automatically.
 
 Every form also has an optional **Message to Organisers** box (for dietary needs, accessibility and the like) and a consent checkbox. If a Super Admin has set a **Privacy notice URL** under **Manage ▸ Workspace**, a **Privacy notice** link appears right after the consent sentence.
 
-At the bottom of the form editor, Super Admins can also edit the participant email content in each supported language: the confirmation request, registration receipt, payment reminder, and registration-cancellation emails. These edits apply across the whole installation, not just the event you opened the editor from. Keep placeholders such as `{event}`, `{name}`, and `{days}` intact so the event name, participant name, and days since signup can be filled in. **Send test email** sends an SMTP test message to your account.
+At the bottom of the form editor, Super Admins can also edit the participant email content in each supported language: the confirmation request, registration receipt, final registration confirmation, payment reminder, and registration-cancellation emails. The final confirmation is sent from the People table for any participant whose status is Confirmed. These edits apply across the whole installation, not just the event you opened the editor from. Keep placeholders such as `{event}`, `{name}`, and `{days}` intact so the event name, participant name, and days since signup can be filled in. **Send test email** sends an SMTP test message to your account.
+
+The Registration settings card also has a **Minor consent form** section. Upload the blank PDF for this event (up to 10 MB). In People, the Age column calculates age on the event start date; for a participant under 18, **Send form** emails them the PDF and a unique upload link. The link expires after 30 days. A new upload replaces the participant's previous submission; event admins can download or delete the current submission from the Age column. Removing a participant invalidates their link and removes their stored submission.
+
+The blank PDF and completed forms are stored privately on the server, not in event ZIP backups. Back up the private upload directory/volume separately from the database. For the standard self-hosted Docker Compose setup, the directory is `./data/private_uploads` by default; set `PRIVATE_UPLOAD_HOST_DIR` in `.env` to choose another host directory. The production deployment uses a Docker volume named `private_uploads`, which must also be included in operator backups.
 
 ### Custom fields
 

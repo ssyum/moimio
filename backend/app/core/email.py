@@ -21,6 +21,7 @@ v0.61b — template polish:
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 from html import escape as _html_escape
 
 from app.core.config import get_settings
@@ -67,6 +68,16 @@ EMAIL_STRINGS = {
         'receipt_group_code_title': 'Your group code',
         'receipt_group_code_hint':  "Share this code with the people you'd like to be grouped with. When they register, they can enter this code to link up with you. You may also need it at check-in.",
         'receipt_closing':          "We'll be in touch with everything you need to know before the event.",
+        'minor_form_subject':       'Consent form for {event}',
+        'minor_form_preheader':     'Please complete and return the attached consent form.',
+        'minor_form_hi':            'Hi {name},',
+        'minor_form_body':          "Because you will be under 18 on the event date, please have a parent or guardian complete the attached consent form and upload it here: {upload_link}",
+        'minor_form_closing':       'Please contact the event organisers if you need help.',
+        'final_confirmation_subject':   'Your place at {event} is confirmed',
+        'final_confirmation_preheader': 'Your registration is confirmed.',
+        'final_confirmation_hi':        'Hi {name},',
+        'final_confirmation_body':      "We're pleased to confirm that your registration for <strong>{event}</strong> is now confirmed.",
+        'final_confirmation_closing':   'We look forward to seeing you at the event.',
         'reminder_subject':         'Payment reminder for {event}',
         'reminder_preheader':       'A quick reminder about your event fee.',
         'reminder_hi':              'Hi {name},',
@@ -95,6 +106,16 @@ EMAIL_STRINGS = {
         'receipt_group_code_title': 'Dein Gruppencode',
         'receipt_group_code_hint': 'Teile diesen Code mit den Mitgliedern deiner Gruppe, wenn sie sich anmelden. Sie können diesen Code den Organisatoren mitteilen, um für Zimmer- und Gruppenzuweisungen verknüpft zu werden.',
         'receipt_closing': 'Das Organisationsteam wird sich in Kürze mit weiteren Informationen melden.',
+        'minor_form_subject': 'Einverständniserklärung für {event}',
+        'minor_form_preheader': 'Bitte füllt das beigefügte Formular aus und ladet es hoch.',
+        'minor_form_hi': 'Hallo {name},',
+        'minor_form_body': 'Da du am Veranstaltungstag unter 18 Jahre alt sein wirst, bitten wir deine Eltern oder Erziehungsberechtigten, das beigefügte Formular auszufüllen und hier hochzuladen: {upload_link}',
+        'minor_form_closing': 'Bei Fragen wende dich bitte an das Organisationsteam.',
+        'final_confirmation_subject': 'Dein Platz bei {event} ist bestätigt',
+        'final_confirmation_preheader': 'Deine Anmeldung ist bestätigt.',
+        'final_confirmation_hi': 'Hallo {name},',
+        'final_confirmation_body': 'Wir freuen uns, dir mitzuteilen, dass deine Anmeldung für <strong>{event}</strong> nun bestätigt ist.',
+        'final_confirmation_closing': 'Wir freuen uns darauf, dich bei der Veranstaltung zu sehen.',
         'reminder_subject': 'Zahlungserinnerung für {event}',
         'reminder_preheader': 'Eine kurze Erinnerung an die Veranstaltungsgebühr.',
         'reminder_hi': 'Hallo {name},',
@@ -122,6 +143,16 @@ EMAIL_STRINGS = {
         'receipt_group_code_title': '그룹 코드',
         'receipt_group_code_hint': '그룹원이 등록할 때 이 코드를 공유해 주세요. 주최자에게 이 코드를 알려주시면 방 및 그룹 배정 시 함께 묶입니다.',
         'receipt_closing': '주최팀에서 추가 정보를 곧 보내드릴 것입니다.',
+        'minor_form_subject': '{event} 보호자 동의서',
+        'minor_form_preheader': '첨부된 동의서를 작성하여 제출해 주세요.',
+        'minor_form_hi': '{name}님, 안녕하세요.',
+        'minor_form_body': '행사 당일 만 18세 미만이므로 보호자께서 첨부된 동의서를 작성한 후 아래 링크에서 제출해 주세요: {upload_link}',
+        'minor_form_closing': '도움이 필요하시면 행사 주최자에게 문의해 주세요.',
+        'final_confirmation_subject': '{event} 참가가 확정되었습니다',
+        'final_confirmation_preheader': '등록이 확정되었습니다.',
+        'final_confirmation_hi': '{name}님, 안녕하세요.',
+        'final_confirmation_body': '<strong>{event}</strong> 행사 참가가 확정되었음을 알려드립니다.',
+        'final_confirmation_closing': '행사에서 뵙기를 기대합니다.',
         'reminder_subject': '{event} 참가비 납부 안내',
         'reminder_preheader': '행사 참가비 납부에 관한 안내입니다.',
         'reminder_hi': '{name}님, 안녕하세요.',
@@ -149,6 +180,16 @@ EMAIL_STRINGS = {
         'receipt_group_code_title': 'Tu código de grupo',
         'receipt_group_code_hint': 'Comparte este código con los miembros de tu grupo cuando se inscriban para que se les agrupe contigo.',
         'receipt_closing': 'El equipo organizador te enviará más información pronto.',
+        'minor_form_subject': 'Formulario de consentimiento para {event}',
+        'minor_form_preheader': 'Completa y envía el formulario de consentimiento adjunto.',
+        'minor_form_hi': 'Hola {name},',
+        'minor_form_body': 'Como tendrás menos de 18 años en la fecha del evento, pide a tu padre, madre o tutor que complete el formulario adjunto y lo suba aquí: {upload_link}',
+        'minor_form_closing': 'Si necesitas ayuda, ponte en contacto con la organización.',
+        'final_confirmation_subject': 'Tu plaza en {event} está confirmada',
+        'final_confirmation_preheader': 'Tu inscripción está confirmada.',
+        'final_confirmation_hi': 'Hola {name},',
+        'final_confirmation_body': 'Nos complace confirmarte que tu inscripción a <strong>{event}</strong> ya está confirmada.',
+        'final_confirmation_closing': 'Esperamos verte en el evento.',
         'reminder_subject': 'Recordatorio de pago para {event}',
         'reminder_preheader': 'Un recordatorio sobre la cuota del evento.',
         'reminder_hi': 'Hola {name},',
@@ -176,6 +217,16 @@ EMAIL_STRINGS = {
         'receipt_group_code_title': 'Seu código de grupo',
         'receipt_group_code_hint': 'Compartilhe este código com os membros do seu grupo ao se inscreverem para que sejam agrupados com você.',
         'receipt_closing': 'A equipe organizadora enviará mais informações em breve.',
+        'minor_form_subject': 'Formulário de consentimento para {event}',
+        'minor_form_preheader': 'Preencha e envie o formulário de consentimento anexado.',
+        'minor_form_hi': 'Olá {name},',
+        'minor_form_body': 'Como você terá menos de 18 anos na data do evento, peça a um responsável que preencha o formulário anexado e envie-o aqui: {upload_link}',
+        'minor_form_closing': 'Se precisar de ajuda, entre em contato com a organização.',
+        'final_confirmation_subject': 'Sua vaga em {event} está confirmada',
+        'final_confirmation_preheader': 'Sua inscrição está confirmada.',
+        'final_confirmation_hi': 'Olá {name},',
+        'final_confirmation_body': 'Temos o prazer de confirmar que sua inscrição em <strong>{event}</strong> foi confirmada.',
+        'final_confirmation_closing': 'Esperamos encontrar você no evento.',
         'reminder_subject': 'Lembrete de pagamento para {event}',
         'reminder_preheader': 'Um lembrete sobre a taxa do evento.',
         'reminder_hi': 'Olá {name},',
@@ -203,6 +254,16 @@ EMAIL_STRINGS = {
         'receipt_group_code_title': 'Votre code de groupe',
         'receipt_group_code_hint': 'Partagez ce code avec les membres de votre groupe lors de leur inscription pour être regroupés ensemble.',
         'receipt_closing': "L'équipe organisatrice vous enverra de plus amples informations bientôt.",
+        'minor_form_subject': 'Formulaire de consentement pour {event}',
+        'minor_form_preheader': 'Veuillez remplir et renvoyer le formulaire de consentement joint.',
+        'minor_form_hi': 'Bonjour {name},',
+        'minor_form_body': "Comme vous aurez moins de 18 ans à la date de l'événement, demandez à votre parent ou tuteur de remplir le formulaire joint et de le déposer ici : {upload_link}",
+        'minor_form_closing': "Si vous avez besoin d'aide, veuillez contacter l'équipe organisatrice.",
+        'final_confirmation_subject': 'Votre place à {event} est confirmée',
+        'final_confirmation_preheader': 'Votre inscription est confirmée.',
+        'final_confirmation_hi': 'Bonjour {name},',
+        'final_confirmation_body': 'Nous avons le plaisir de vous confirmer que votre inscription à <strong>{event}</strong> est maintenant confirmée.',
+        'final_confirmation_closing': 'Nous avons hâte de vous retrouver lors de l’événement.',
         'reminder_subject': 'Rappel de paiement pour {event}',
         'reminder_preheader': 'Un rappel au sujet des frais de participation.',
         'reminder_hi': 'Bonjour {name},',
@@ -364,7 +425,13 @@ def _html_to_text(html_like: str) -> str:
 
 # ─── SMTP transport ───────────────────────────────────────────────────────
 
-def send_email(to_email: str, subject: str, html_body: str, text_body: str | None = None) -> bool:
+def send_email(
+    to_email: str,
+    subject: str,
+    html_body: str,
+    text_body: str | None = None,
+    attachments: list[tuple[str, bytes, str]] | None = None,
+) -> bool:
     """Send an email. Returns True on success, False otherwise.
 
     v0.61b: accepts optional plain-text alternative. When provided, it's
@@ -379,13 +446,27 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str | Non
         return False
 
     try:
-        msg = MIMEMultipart("alternative")
+        msg = MIMEMultipart("mixed" if attachments else "alternative")
         msg["Subject"] = subject
         msg["From"] = f"{settings.smtp_from_name} <{settings.smtp_from_email}>"
         msg["To"] = to_email
-        if text_body:
-            msg.attach(MIMEText(text_body, "plain", "utf-8"))
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
+        if attachments:
+            alternatives = MIMEMultipart("alternative")
+            if text_body:
+                alternatives.attach(MIMEText(text_body, "plain", "utf-8"))
+            alternatives.attach(MIMEText(html_body, "html", "utf-8"))
+            msg.attach(alternatives)
+            for filename, content, media_type in attachments:
+                maintype, subtype = media_type.split("/", 1)
+                attachment = MIMEApplication(content, _subtype=subtype)
+                attachment.add_header(
+                    "Content-Disposition", "attachment", filename=filename
+                )
+                msg.attach(attachment)
+        else:
+            if text_body:
+                msg.attach(MIMEText(text_body, "plain", "utf-8"))
+            msg.attach(MIMEText(html_body, "html", "utf-8"))
 
         if settings.smtp_ssl:
             server = smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port)
@@ -574,6 +655,81 @@ def send_payment_reminder_email(
     return _send_simple_transactional_email(
         to_email, event_name, first_name, 'reminder', lang, email_strings,
         days=days_since_registration,
+    )
+
+
+def send_final_registration_confirmation_email(
+    to_email: str,
+    first_name: str,
+    event_name: str,
+    lang: str = 'en',
+    email_strings: dict[str, str] | None = None,
+) -> bool:
+    """Send an organiser-triggered notice that a participant is confirmed."""
+    return _send_simple_transactional_email(
+        to_email, event_name, first_name, 'final_confirmation', lang, email_strings,
+    )
+
+
+def send_minor_form_email(
+    to_email: str,
+    first_name: str,
+    event_name: str,
+    upload_link: str,
+    attachment_name: str,
+    attachment_content: bytes,
+    lang: str = 'en',
+    email_strings: dict[str, str] | None = None,
+) -> bool:
+    """Send an under-18 participant the consent form and private upload link."""
+    L = lang if lang in EMAIL_STRINGS else 'en'
+    template_values = {
+        "event": event_name,
+        "name": first_name,
+        "upload_link": upload_link,
+    }
+    subject = _template_string(
+        'minor_form_subject', L, email_strings
+    ).format(**template_values)
+    greeting = _template_string(
+        'minor_form_hi', L, email_strings
+    ).format(**template_values)
+    body = _template_string(
+        'minor_form_body', L, email_strings
+    ).format(**template_values)
+    closing = _template_string(
+        'minor_form_closing', L, email_strings
+    ).format(**template_values)
+    escaped_link = _html_escape(upload_link, quote=True)
+    body_html = _safe_template_html(body).replace(
+        _html_escape(upload_link),
+        f'<a href="{escaped_link}">{escaped_link}</a>',
+    )
+    html = _shell(
+        title=subject,
+        preheader=_template_string(
+            'minor_form_preheader', L, email_strings
+        ).format(**template_values),
+        body_html=(
+            _logo()
+            + _p(_safe_template_html(greeting))
+            + _p(body_html)
+            + _p(_safe_template_html(closing), muted=True)
+        ),
+        lang=L,
+    )
+    text = (
+        f"{_html_to_text(greeting)}\n\n"
+        f"{_html_to_text(body)}\n\n"
+        f"{_html_to_text(closing)}\n\n"
+        f"— {_s(L, 'powered_by')}\n"
+    )
+    return send_email(
+        to_email,
+        subject,
+        html,
+        text,
+        attachments=[(attachment_name, attachment_content, "application/pdf")],
     )
 
 

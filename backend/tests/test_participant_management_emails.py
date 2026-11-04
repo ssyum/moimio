@@ -89,6 +89,74 @@ async def test_payment_reminder_sends_current_day_count(client, db, monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_final_confirmation_sends_to_confirmed_participant(client, db, monkeypatch):
+    event = Event(name="Gathering", timezone="UTC", status=EventStatus.OPEN)
+    db.add(event)
+    await db.flush()
+    participant = Participant(
+        event_id=event.id,
+        first_name="Sam",
+        last_name="Example",
+        email="sam@example.org",
+        registration_status=RegistrationStatus.CONFIRMED,
+        preferred_language="en",
+    )
+    db.add(participant)
+    await db.commit()
+    sent = {}
+
+    def fake_send(**kwargs):
+        sent.update(kwargs)
+        return True
+
+    monkeypatch.setattr(
+        "app.api.participants.send_final_registration_confirmation_email",
+        fake_send,
+    )
+    app.dependency_overrides[get_current_user] = _super_admin
+    try:
+        response = await client.post(
+            f"/api/events/{event.id}/participants/{participant.id}/final-confirmation"
+        )
+        assert response.status_code == 200
+        assert response.json() == {"sent": True}
+        assert sent["to_email"] == "sam@example.org"
+        assert sent["event_name"] == "Gathering"
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
+@pytest.mark.asyncio
+async def test_final_confirmation_rejects_pending_participant(client, db, monkeypatch):
+    event = Event(name="Gathering", timezone="UTC", status=EventStatus.OPEN)
+    db.add(event)
+    await db.flush()
+    participant = Participant(
+        event_id=event.id,
+        first_name="Sam",
+        last_name="Example",
+        email="sam@example.org",
+        registration_status=RegistrationStatus.PENDING,
+        preferred_language="en",
+    )
+    db.add(participant)
+    await db.commit()
+    monkeypatch.setattr(
+        "app.api.participants.send_final_registration_confirmation_email",
+        lambda **kwargs: pytest.fail("A final confirmation must only go to confirmed participants"),
+    )
+    app.dependency_overrides[get_current_user] = _super_admin
+    try:
+        response = await client.post(
+            f"/api/events/{event.id}/participants/{participant.id}/final-confirmation"
+        )
+        assert response.status_code == 409
+        assert response.json()["detail"]["key"] == "errors.participant.final_confirmation_not_applicable"
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
+@pytest.mark.asyncio
 async def test_removing_participant_sends_cancellation_email_even_if_delivery_fails(
     client, db, monkeypatch
 ):

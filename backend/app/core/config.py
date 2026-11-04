@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     cors_origins: str = "http://localhost:6120"
     rate_limit_registration: int = 60  # sign-ups per minute per address; 0 = off
+    private_upload_dir: str = "/data/private_uploads"
 
     # ─── Capability flags (v1.0.0g) ───
     #

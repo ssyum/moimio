@@ -15,12 +15,14 @@ from app.core.email import (
     send_confirmation_email,
     send_registration_cancellation_email,
     send_payment_reminder_email,
+    send_final_registration_confirmation_email,
     send_registration_receipt,
 )
 from app.core.urls import get_app_base_url
 from app.models.user import User, UserRole
 from app.models.participant import RegistrationStatus
 from app.models.custom_field import CustomFieldDefinition
+from app.models.minor_form import MinorFormSubmission
 from app.services.field_conditions import (
     filter_answers, format_errors, load_defs, person_of, reference_date,
 )
@@ -36,6 +38,7 @@ from app.services.participant_service import (
 )
 from app.services.event_service import get_event_by_id
 from app.services.workspace_settings_service import get_email_templates
+from app.services.minor_form_storage import delete_pdf
 from app.api.deps import get_current_user, require_role, ensure_event_writable, ensure_event_admin
 from app.services.permissions import get_event_permissions, has_read, has_write
 
@@ -522,7 +525,24 @@ async def delete_participant(
     event = await get_event_by_id(db, participant.event_id)
     if not event:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"key": "errors.event.not_found"})
+    minor_form = await db.get(MinorFormSubmission, participant_id)
+    minor_form_key = minor_form.storage_key if minor_form else None
+    if minor_form is not None:
+        await db.delete(minor_form)
     await soft_delete_participant(db, participant)
+    await db.commit()
+    if minor_form_key:
+        try:
+            delete_pdf(minor_form_key)
+        except OSError as exc:
+            logger.exception(
+                "minor_form_cleanup_failed_after_participant_removal",
+                participant_id=str(participant_id),
+            )
+            raise HTTPException(
+                status_code=500,
+                detail={"key": "errors.minor_form.cleanup_failed"},
+            ) from exc
     lang = participant.preferred_language or 'en'
     email_sent = send_registration_cancellation_email(
         to_email=participant.email,
@@ -607,6 +627,57 @@ async def send_payment_reminder(
         sent_by=str(current_user.id),
     )
     return {"sent": True, "days_since_registration": days}
+
+
+@router.post(
+    "/api/events/{event_id}/participants/{participant_id}/final-confirmation",
+    status_code=status.HTTP_200_OK,
+)
+async def send_final_confirmation(
+    event_id: uuid.UUID,
+    participant_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Send an organiser-triggered confirmation notice to a confirmed participant."""
+    event = await get_event_by_id(db, event_id)
+    if not event:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"key": "errors.event.not_found"})
+    await ensure_event_admin(db, event_id, current_user)
+    await ensure_event_writable(db, event_id, current_user)
+    participant = await get_participant_by_id(db, participant_id)
+    if not participant or participant.event_id != event_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"key": "errors.participant.not_found"})
+    if participant.registration_status != RegistrationStatus.CONFIRMED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"key": "errors.participant.final_confirmation_not_applicable"},
+        )
+    lang = participant.preferred_language or 'en'
+    sent = send_final_registration_confirmation_email(
+        to_email=participant.email,
+        first_name=participant.first_name,
+        event_name=event.name,
+        lang=lang,
+        email_strings=(await get_email_templates(db)).get(lang),
+    )
+    if not sent:
+        logger.warning(
+            "participant_final_confirmation_not_sent",
+            participant_id=str(participant_id),
+            event_id=str(event_id),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"key": "errors.email.delivery_failed"},
+        )
+    logger.info(
+        "participant_final_confirmation_sent",
+        participant_id=str(participant_id),
+        event_id=str(event_id),
+        sent_by=str(current_user.id),
+    )
+    return {"sent": True}
 
 
 # ─── Resend confirmation email ────────────────────────────────────────────────

@@ -44,6 +44,7 @@ frontend/dist/
 # Local Postgres data volume — sometimes ends up on disk during
 # experimentation. Never commit.
 pgdata/
+data/private_uploads/
 
 # ─── IDE & Editor ─────────────────────────────────────────────────
 .vscode/

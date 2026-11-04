@@ -32,6 +32,16 @@ EMAIL_TEMPLATE_KEYS = (
     "receipt_group_code_title",
     "receipt_group_code_hint",
     "receipt_closing",
+    "minor_form_subject",
+    "minor_form_preheader",
+    "minor_form_hi",
+    "minor_form_body",
+    "minor_form_closing",
+    "final_confirmation_subject",
+    "final_confirmation_preheader",
+    "final_confirmation_hi",
+    "final_confirmation_body",
+    "final_confirmation_closing",
     "reminder_subject",
     "reminder_preheader",
     "reminder_hi",
@@ -51,6 +61,12 @@ EMAIL_TEMPLATE_PLACEHOLDERS = {
     "receipt_subject": {"event"},
     "receipt_hi": {"name"},
     "receipt_body": {"event"},
+    "minor_form_subject": {"event"},
+    "minor_form_hi": {"name"},
+    "minor_form_body": {"event", "upload_link"},
+    "final_confirmation_subject": {"event"},
+    "final_confirmation_hi": {"name"},
+    "final_confirmation_body": {"event"},
     "reminder_subject": {"event"},
     "reminder_hi": {"name"},
     "reminder_body": {"event", "days"},
@@ -138,7 +154,7 @@ def normalise_email_templates(raw: dict) -> dict[str, dict[str, str]]:
             if key.endswith("_subject") and ("\r" in value or "\n" in value):
                 raise InvalidEmailTemplates("subject must be a single line")
             try:
-                parts = Formatter().parse(value)
+                parts = list(Formatter().parse(value))
             except ValueError as exc:
                 raise InvalidEmailTemplates("malformed placeholder") from exc
             placeholders = set()
