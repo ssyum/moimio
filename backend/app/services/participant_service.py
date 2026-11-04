@@ -6,6 +6,7 @@ import secrets
 import random
 import unicodedata
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select, func as sa_func, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -64,6 +65,24 @@ def _stem_from(text: str) -> str:
     folded = _COMBINING_MARKS_RE.sub('', unicodedata.normalize('NFKD', folded))
     cleaned = re.sub(r'[^A-Z0-9]', '', folded.upper())
     return cleaned[:8] or 'GROUP'
+
+
+def days_since_registration(
+    registered_at: datetime,
+    event_timezone: str,
+    now: datetime | None = None,
+) -> int:
+    """Calendar days since registration in the event's timezone (day zero)."""
+    try:
+        zone = ZoneInfo(event_timezone)
+    except (ZoneInfoNotFoundError, TypeError):
+        zone = ZoneInfo("UTC")
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    if registered_at.tzinfo is None:
+        registered_at = registered_at.replace(tzinfo=timezone.utc)
+    return max(0, (current.astimezone(zone).date() - registered_at.astimezone(zone).date()).days)
 
 
 async def _allocate_unique_group_code(

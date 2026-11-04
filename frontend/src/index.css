@@ -77,6 +77,8 @@
   --tick-color:   #4682B4;               /* ✓ indicator */
   --accent-checked: #4682B4;             /* Check-in row left edge (light) */
   --alert-burgundy: #800020;             /* v0.55.1: alert/warning family (light) */
+  --success-color: #287A3D;
+  --success-tint: rgba(40,122,61,0.10);
 
   /* v0.70b — semantic tints for the brand-aligned 2-color status system.
      These pair with the Tailwind plugin in tailwind.config.js that exposes
@@ -141,6 +143,8 @@
   --alert-burgundy: #CF6679;             /* v0.55.1: legible burgundy on dark bg
                                             (Material dark-mode error tone).
                                             Pure #800020 is unreadable on #1a2c40. */
+  --success-color: #76C893;
+  --success-tint: rgba(118,200,147,0.12);
 
   /* v0.70b — semantic tints, dark-mode values. Gold tint pairs with the
      dark mode --io-accent flip; burgundy tint uses the brighter pink-red

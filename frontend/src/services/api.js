@@ -247,6 +247,8 @@ export const participants = {
   update: (id, data) => request(`/participants/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   checkin: (id, checked_in) => request(`/participants/${id}/checkin`, { method: 'POST', body: JSON.stringify({ checked_in }) }),
   delete: (id) => request(`/participants/${id}`, { method: 'DELETE' }),
+  paymentReminder: (eventId, participantId) =>
+    request(`/events/${eventId}/participants/${participantId}/payment-reminder`, { method: 'POST' }),
 };
 
 // ─── Allocation Categories ───

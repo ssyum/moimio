@@ -11,7 +11,12 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.logging import get_logger
 from app.core.rate_limit import client_ip, registration_limiter
-from app.core.email import send_confirmation_email, send_registration_receipt
+from app.core.email import (
+    send_confirmation_email,
+    send_registration_cancellation_email,
+    send_payment_reminder_email,
+    send_registration_receipt,
+)
 from app.core.urls import get_app_base_url
 from app.models.user import User, UserRole
 from app.models.participant import RegistrationStatus
@@ -27,6 +32,7 @@ from app.services.participant_service import (
     register_participant, get_participant_by_id, list_participants,
     update_participant, update_group_code, check_in_participant,
     soft_delete_participant, confirm_participant, maybe_signal_over_cap,
+    days_since_registration,
 )
 from app.services.event_service import get_event_by_id
 from app.services.workspace_settings_service import get_email_templates
@@ -500,20 +506,37 @@ async def checkin_participant(
 
 @router.delete(
     "/api/participants/{participant_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
 )
 async def delete_participant(
     participant_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Soft-delete a participant (GDPR). Event Admin for this event, or Super Admin."""
+    """Remove a participant and email them the registration-cancellation notice."""
     participant = await get_participant_by_id(db, participant_id)
     if not participant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"key": "errors.participant.not_found"})
     await ensure_event_admin(db, participant.event_id, current_user)
     await ensure_event_writable(db, participant.event_id, current_user)
+    event = await get_event_by_id(db, participant.event_id)
+    if not event:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"key": "errors.event.not_found"})
     await soft_delete_participant(db, participant)
+    lang = participant.preferred_language or 'en'
+    email_sent = send_registration_cancellation_email(
+        to_email=participant.email,
+        first_name=participant.first_name,
+        event_name=event.name,
+        lang=lang,
+        email_strings=(await get_email_templates(db)).get(lang),
+    )
+    if not email_sent:
+        logger.warning(
+            "participant_cancellation_email_not_sent",
+            participant_id=str(participant_id),
+            event_id=str(participant.event_id),
+        )
     logger.info(
         "participant_deleted",
         participant_id=str(participant_id),
@@ -524,6 +547,66 @@ async def delete_participant(
         participant.event_id, "participant_deleted",
         participant_id=str(participant_id),
     )
+    return {"email_sent": email_sent}
+
+
+@router.post(
+    "/api/events/{event_id}/participants/{participant_id}/payment-reminder",
+    status_code=status.HTTP_200_OK,
+)
+async def send_payment_reminder(
+    event_id: uuid.UUID,
+    participant_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Send an organiser-triggered fee reminder to an overdue participant."""
+    event = await get_event_by_id(db, event_id)
+    if not event:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"key": "errors.event.not_found"})
+    await ensure_event_admin(db, event_id, current_user)
+    await ensure_event_writable(db, event_id, current_user)
+    participant = await get_participant_by_id(db, participant_id)
+    if not participant or participant.event_id != event_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"key": "errors.participant.not_found"})
+    if participant.registration_status != RegistrationStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"key": "errors.participant.reminder_not_applicable"},
+        )
+    days = days_since_registration(participant.created_at, event.timezone)
+    if days <= 3:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"key": "errors.participant.reminder_not_due"},
+        )
+    lang = participant.preferred_language or 'en'
+    sent = send_payment_reminder_email(
+        to_email=participant.email,
+        first_name=participant.first_name,
+        event_name=event.name,
+        days_since_registration=days,
+        lang=lang,
+        email_strings=(await get_email_templates(db)).get(lang),
+    )
+    if not sent:
+        logger.warning(
+            "participant_payment_reminder_not_sent",
+            participant_id=str(participant_id),
+            event_id=str(event_id),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"key": "errors.email.delivery_failed"},
+        )
+    logger.info(
+        "participant_payment_reminder_sent",
+        participant_id=str(participant_id),
+        event_id=str(event_id),
+        days_since_registration=days,
+        sent_by=str(current_user.id),
+    )
+    return {"sent": True, "days_since_registration": days}
 
 
 # ─── Resend confirmation email ────────────────────────────────────────────────

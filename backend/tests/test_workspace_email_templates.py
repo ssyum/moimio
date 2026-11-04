@@ -13,6 +13,7 @@ from app.services.workspace_settings_service import (
     normalise_email_templates,
     set_email_templates,
 )
+from app.services.participant_service import days_since_registration
 
 ADMIN = "/api/admin/workspace/email-templates"
 
@@ -40,11 +41,15 @@ def test_email_template_validation_accepts_known_placeholders():
         "en": {
             "receipt_subject": "You're registered for {event}",
             "receipt_hi": "Hi {name}",
+            "reminder_body": "Please pay for {event} within {days} days.",
+            "cancellation_body": "Your place at {event} was cancelled.",
         },
     }) == {
         "en": {
             "receipt_subject": "You're registered for {event}",
             "receipt_hi": "Hi {name}",
+            "reminder_body": "Please pay for {event} within {days} days.",
+            "cancellation_body": "Your place at {event} was cancelled.",
         },
     }
 
@@ -179,3 +184,64 @@ def test_confirmation_email_uses_custom_copy(monkeypatch):
         "Finish signing up for Gathering 2026\r\n"
         "Next line <script>alert(1)</script>"
     ) in sent["text"]
+
+
+def test_payment_reminder_email_uses_editable_copy_and_days_placeholder(monkeypatch):
+    sent = {}
+
+    def fake_send(to_email, subject, html_body, text_body=None):
+        sent.update(subject=subject, html=html_body, text=text_body)
+        return True
+
+    monkeypatch.setattr(email, "send_email", fake_send)
+    email.send_payment_reminder_email(
+        "person@example.org",
+        "Sam",
+        "Gathering 2026",
+        8,
+        lang="en",
+        email_strings={
+            "reminder_subject": "Payment for {event}",
+            "reminder_hi": "Hi {name}",
+            "reminder_body": "Please pay for {event}; {days} days have passed.",
+            "reminder_closing": "Thanks",
+        },
+    )
+
+    assert sent["subject"] == "Payment for Gathering 2026"
+    assert "Please pay for Gathering 2026; 8 days have passed." in sent["html"]
+    assert "Hi Sam" in sent["text"]
+
+
+def test_registration_cancellation_email_uses_editable_copy_and_escapes_values(monkeypatch):
+    sent = {}
+
+    def fake_send(to_email, subject, html_body, text_body=None):
+        sent.update(subject=subject, html=html_body, text=text_body)
+        return True
+
+    monkeypatch.setattr(email, "send_email", fake_send)
+    email.send_registration_cancellation_email(
+        "person@example.org",
+        "<Sam>",
+        "Gathering <2026>",
+        email_strings={
+            "cancellation_subject": "Cancelled: {event}",
+            "cancellation_hi": "Hello {name}",
+            "cancellation_body": "Your place at {event} was cancelled.",
+            "cancellation_closing": "Contact us",
+        },
+    )
+
+    assert sent["subject"] == "Cancelled: Gathering <2026>"
+    assert "Hello &lt;Sam&gt;" in sent["html"]
+    assert "Gathering &lt;2026&gt;" in sent["html"]
+    assert "<Sam>" in sent["text"]
+
+
+def test_days_since_registration_uses_event_calendar_day():
+    from datetime import datetime, timezone
+
+    registered_at = datetime(2026, 3, 28, 22, 30, tzinfo=timezone.utc)
+    now = datetime(2026, 3, 31, 0, 30, tzinfo=timezone.utc)
+    assert days_since_registration(registered_at, "Europe/Berlin", now) == 3

@@ -67,6 +67,16 @@ EMAIL_STRINGS = {
         'receipt_group_code_title': 'Your group code',
         'receipt_group_code_hint':  "Share this code with the people you'd like to be grouped with. When they register, they can enter this code to link up with you. You may also need it at check-in.",
         'receipt_closing':          "We'll be in touch with everything you need to know before the event.",
+        'reminder_subject':         'Payment reminder for {event}',
+        'reminder_preheader':       'A quick reminder about your event fee.',
+        'reminder_hi':              'Hi {name},',
+        'reminder_body':            "Our records show that your registration for <strong>{event}</strong> is still awaiting payment. It has been {days} days since you registered. Please arrange payment as soon as possible.",
+        'reminder_closing':         'If you have already paid, please disregard this message.',
+        'cancellation_subject':     'Your registration for {event} has been cancelled',
+        'cancellation_preheader':   'An update about your event registration.',
+        'cancellation_hi':          'Hi {name},',
+        'cancellation_body':        "Your registration for <strong>{event}</strong> has been cancelled by the organisers. Please contact the organisers if you think this was a mistake.",
+        'cancellation_closing':     'We are sorry you will not be joining us.',
         'powered_by':               'Powered by Moimio',
     },
     # ── untouched — regenerated in v0.70 ───────────────────────────────
@@ -85,6 +95,16 @@ EMAIL_STRINGS = {
         'receipt_group_code_title': 'Dein Gruppencode',
         'receipt_group_code_hint': 'Teile diesen Code mit den Mitgliedern deiner Gruppe, wenn sie sich anmelden. Sie können diesen Code den Organisatoren mitteilen, um für Zimmer- und Gruppenzuweisungen verknüpft zu werden.',
         'receipt_closing': 'Das Organisationsteam wird sich in Kürze mit weiteren Informationen melden.',
+        'reminder_subject': 'Zahlungserinnerung für {event}',
+        'reminder_preheader': 'Eine kurze Erinnerung an die Veranstaltungsgebühr.',
+        'reminder_hi': 'Hallo {name},',
+        'reminder_body': 'Laut unseren Unterlagen steht die Zahlung für deine Anmeldung zu <strong>{event}</strong> noch aus. Seit deiner Anmeldung sind {days} Tage vergangen. Bitte veranlasse die Zahlung so bald wie möglich.',
+        'reminder_closing': 'Falls du bereits bezahlt hast, ignoriere diese Nachricht bitte.',
+        'cancellation_subject': 'Deine Anmeldung für {event} wurde storniert',
+        'cancellation_preheader': 'Eine Neuigkeit zu deiner Veranstaltungsanmeldung.',
+        'cancellation_hi': 'Hallo {name},',
+        'cancellation_body': 'Die Organisatoren haben deine Anmeldung für <strong>{event}</strong> storniert. Bitte kontaktiere sie, falls dies ein Irrtum ist.',
+        'cancellation_closing': 'Schade, dass du nicht dabei sein wirst.',
         'powered_by': 'Powered by Moimio',
     },
     'ko': {
@@ -102,6 +122,16 @@ EMAIL_STRINGS = {
         'receipt_group_code_title': '그룹 코드',
         'receipt_group_code_hint': '그룹원이 등록할 때 이 코드를 공유해 주세요. 주최자에게 이 코드를 알려주시면 방 및 그룹 배정 시 함께 묶입니다.',
         'receipt_closing': '주최팀에서 추가 정보를 곧 보내드릴 것입니다.',
+        'reminder_subject': '{event} 참가비 납부 안내',
+        'reminder_preheader': '행사 참가비 납부에 관한 안내입니다.',
+        'reminder_hi': '{name}님, 안녕하세요.',
+        'reminder_body': '<strong>{event}</strong> 행사 등록 후 {days}일이 지났으며 아직 참가비 납부가 확인되지 않았습니다. 가능한 한 빨리 납부해 주세요.',
+        'reminder_closing': '이미 납부하셨다면 이 안내를 무시해 주세요.',
+        'cancellation_subject': '{event} 등록이 취소되었습니다',
+        'cancellation_preheader': '행사 등록에 관한 안내입니다.',
+        'cancellation_hi': '{name}님, 안녕하세요.',
+        'cancellation_body': '주최자가 <strong>{event}</strong> 행사 등록을 취소했습니다. 잘못된 안내라고 생각하시면 주최자에게 문의해 주세요.',
+        'cancellation_closing': '함께하지 못하게 되어 아쉽습니다.',
         'powered_by': 'Moimio 제공',
     },
     'es': {
@@ -119,6 +149,16 @@ EMAIL_STRINGS = {
         'receipt_group_code_title': 'Tu código de grupo',
         'receipt_group_code_hint': 'Comparte este código con los miembros de tu grupo cuando se inscriban para que se les agrupe contigo.',
         'receipt_closing': 'El equipo organizador te enviará más información pronto.',
+        'reminder_subject': 'Recordatorio de pago para {event}',
+        'reminder_preheader': 'Un recordatorio sobre la cuota del evento.',
+        'reminder_hi': 'Hola {name},',
+        'reminder_body': 'Según nuestros registros, aún está pendiente el pago de tu inscripción a <strong>{event}</strong>. Han pasado {days} días desde que te inscribiste. Por favor, realiza el pago lo antes posible.',
+        'reminder_closing': 'Si ya pagaste, puedes ignorar este mensaje.',
+        'cancellation_subject': 'Tu inscripción a {event} ha sido cancelada',
+        'cancellation_preheader': 'Una actualización sobre tu inscripción al evento.',
+        'cancellation_hi': 'Hola {name},',
+        'cancellation_body': 'Los organizadores han cancelado tu inscripción a <strong>{event}</strong>. Si crees que esto es un error, ponte en contacto con ellos.',
+        'cancellation_closing': 'Lamentamos que no puedas acompañarnos.',
         'powered_by': 'Desarrollado por Moimio',
     },
     'pt-BR': {
@@ -136,6 +176,16 @@ EMAIL_STRINGS = {
         'receipt_group_code_title': 'Seu código de grupo',
         'receipt_group_code_hint': 'Compartilhe este código com os membros do seu grupo ao se inscreverem para que sejam agrupados com você.',
         'receipt_closing': 'A equipe organizadora enviará mais informações em breve.',
+        'reminder_subject': 'Lembrete de pagamento para {event}',
+        'reminder_preheader': 'Um lembrete sobre a taxa do evento.',
+        'reminder_hi': 'Olá {name},',
+        'reminder_body': 'Nossos registros indicam que o pagamento da sua inscrição em <strong>{event}</strong> ainda está pendente. Já se passaram {days} dias desde a sua inscrição. Por favor, providencie o pagamento assim que possível.',
+        'reminder_closing': 'Se você já pagou, desconsidere esta mensagem.',
+        'cancellation_subject': 'Sua inscrição em {event} foi cancelada',
+        'cancellation_preheader': 'Uma atualização sobre sua inscrição no evento.',
+        'cancellation_hi': 'Olá {name},',
+        'cancellation_body': 'A equipe organizadora cancelou sua inscrição em <strong>{event}</strong>. Se você acredita que isso foi um engano, entre em contato com a organização.',
+        'cancellation_closing': 'Sentimos muito que você não poderá participar.',
         'powered_by': 'Desenvolvido por Moimio',
     },
     'fr': {
@@ -153,6 +203,16 @@ EMAIL_STRINGS = {
         'receipt_group_code_title': 'Votre code de groupe',
         'receipt_group_code_hint': 'Partagez ce code avec les membres de votre groupe lors de leur inscription pour être regroupés ensemble.',
         'receipt_closing': "L'équipe organisatrice vous enverra de plus amples informations bientôt.",
+        'reminder_subject': 'Rappel de paiement pour {event}',
+        'reminder_preheader': 'Un rappel au sujet des frais de participation.',
+        'reminder_hi': 'Bonjour {name},',
+        'reminder_body': "D'après nos informations, le paiement de votre inscription à <strong>{event}</strong> est toujours en attente. {days} jours se sont écoulés depuis votre inscription. Merci de procéder au paiement dès que possible.",
+        'reminder_closing': 'Si vous avez déjà payé, veuillez ignorer ce message.',
+        'cancellation_subject': 'Votre inscription à {event} a été annulée',
+        'cancellation_preheader': 'Une information concernant votre inscription à l’événement.',
+        'cancellation_hi': 'Bonjour {name},',
+        'cancellation_body': "L'équipe organisatrice a annulé votre inscription à <strong>{event}</strong>. Si vous pensez qu'il s'agit d'une erreur, veuillez la contacter.",
+        'cancellation_closing': 'Nous sommes désolés que vous ne puissiez pas être des nôtres.',
         'powered_by': 'Propulsé par Moimio',
     },
 }
@@ -465,6 +525,69 @@ def send_registration_receipt(
     email_strings: dict[str, str] | None = None,
 ) -> bool:
     return send_registration_confirmed(to_email, first_name, event_name, group_code, lang, email_strings)
+
+
+def _send_simple_transactional_email(
+    to_email: str,
+    event_name: str,
+    first_name: str,
+    kind: str,
+    lang: str,
+    email_strings: dict[str, str] | None,
+    **values: str | int,
+) -> bool:
+    L = lang if lang in EMAIL_STRINGS else 'en'
+    template_values = {"event": event_name, "name": first_name, **values}
+    subject = _template_string(f'{kind}_subject', L, email_strings).format(**template_values)
+    greeting = _template_string(f'{kind}_hi', L, email_strings).format(**template_values)
+    body = _template_string(f'{kind}_body', L, email_strings).format(**template_values)
+    closing = _template_string(f'{kind}_closing', L, email_strings).format(**template_values)
+    html = _shell(
+        title=subject,
+        preheader=_template_string(f'{kind}_preheader', L, email_strings).format(**template_values),
+        body_html=(
+            _logo()
+            + _p(_safe_template_html(greeting))
+            + _p(_safe_template_html(body))
+            + _p(_safe_template_html(closing), muted=True)
+        ),
+        lang=L,
+    )
+    text = (
+        f"{_html_to_text(greeting)}\n\n"
+        f"{_html_to_text(body)}\n\n"
+        f"{_html_to_text(closing)}\n\n"
+        f"— {_s(L, 'powered_by')}\n"
+    )
+    return send_email(to_email, subject, html, text)
+
+
+def send_payment_reminder_email(
+    to_email: str,
+    first_name: str,
+    event_name: str,
+    days_since_registration: int,
+    lang: str = 'en',
+    email_strings: dict[str, str] | None = None,
+) -> bool:
+    """Send an organiser-triggered reminder about an outstanding event fee."""
+    return _send_simple_transactional_email(
+        to_email, event_name, first_name, 'reminder', lang, email_strings,
+        days=days_since_registration,
+    )
+
+
+def send_registration_cancellation_email(
+    to_email: str,
+    first_name: str,
+    event_name: str,
+    lang: str = 'en',
+    email_strings: dict[str, str] | None = None,
+) -> bool:
+    """Notify a participant when an organiser removes their registration."""
+    return _send_simple_transactional_email(
+        to_email, event_name, first_name, 'cancellation', lang, email_strings,
+    )
 
 
 def _safe_template_html(value: str) -> str:

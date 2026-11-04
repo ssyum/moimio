@@ -19,6 +19,11 @@ import GroupCodeTooltip from './GroupCodeTooltip';
 // v1.0.4zc (SORT-1): the sort is remembered per user, in this browser.
 import { useAuth } from '../hooks/useAuth';
 import { useRememberedSort } from '../hooks/useRememberedSort';
+import {
+  calendarDateKey,
+  daysSinceRegistration,
+  registrationAgeTier,
+} from '../utils/daysSinceRegistration';
 
 // Built-in columns with optional field name for data-detection
 const BUILTIN_COLUMNS = [
@@ -35,6 +40,7 @@ const BUILTIN_COLUMNS = [
   { id: 'church_organisation', label: 'people.col.church_organisation', field: 'church_organisation' },
   { id: 'message', label: 'people.col.message', field: 'message' },
   { id: 'registered_at', label: 'people.col.registered_at', default: true },
+  { id: 'days_since_registration', label: 'people.col.days_since_registration', default: true },
   { id: 'checked_in', label: 'people.col.checked_in' },
   { id: 'notes', label: 'people.col.notes', default: true },
 ];
@@ -83,7 +89,7 @@ const EDITABLE_FIELDS = {
 };
 const ALL_STATUSES = ['pending', 'confirmed', 'cancelled'];
 
-export default function PeopleTable({ eventId, userId, participantList, noteCounts, isAdmin, canDelete, marksPerm, onDataChange, onOpenNotes, onDelete, initialStatusFilter = '' }) {
+export default function PeopleTable({ eventId, eventTimezone, userId, participantList, noteCounts, isAdmin, canDelete, marksPerm, onDataChange, onOpenNotes, onDelete, initialStatusFilter = '' }) {
   // v0.50f-1: mark modal opens for everyone (read is implicit). The modal
   // itself renders in view-only mode when canAssign is false. isAdmin
   // bypasses.
@@ -102,6 +108,16 @@ export default function PeopleTable({ eventId, userId, participantList, noteCoun
   const _seed = ['pending', 'confirmed', 'cancelled'].includes(initialStatusFilter)
     ? initialStatusFilter : '';
   const [statusFilter, setStatusFilter] = useState(_seed);
+  const [counterToday, setCounterToday] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      if (calendarDateKey(now, eventTimezone) !== calendarDateKey(counterToday, eventTimezone)) {
+        setCounterToday(now);
+      }
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, [counterToday, eventTimezone]);
   // v1.0.4zc (SORT-1): remembered per user, in this browser. See the hook.
   const { user } = useAuth();
   const { sortCol, sortDir, toggleSort: handleSort } = useRememberedSort({
@@ -139,12 +155,27 @@ export default function PeopleTable({ eventId, userId, participantList, noteCoun
   });
   const colsStorageKey = eventId && userId ? `moimio_people_cols_${userId}_${eventId}` : null;
   const colOrderKey = eventId && userId ? `moimio_people_col_order_${userId}_${eventId}` : null;
+  const daysColumnMigrationKey = eventId && userId
+    ? `moimio_people_days_column_v1_${userId}_${eventId}`
+    : null;
   const [visibleCols, setVisibleCols] = useState(() => {
     if (colsStorageKey) {
       try {
         const saved = localStorage.getItem(colsStorageKey);
-        if (saved) return new Set(JSON.parse(saved));
+        if (saved) {
+          const columns = JSON.parse(saved);
+          if (daysColumnMigrationKey && !localStorage.getItem(daysColumnMigrationKey)) {
+            const migrated = [...new Set([...columns, 'days_since_registration'])];
+            localStorage.setItem(colsStorageKey, JSON.stringify(migrated));
+            localStorage.setItem(daysColumnMigrationKey, '1');
+            return new Set(migrated);
+          }
+          return new Set(columns);
+        }
       } catch {}
+    }
+    if (daysColumnMigrationKey) {
+      try { localStorage.setItem(daysColumnMigrationKey, '1'); } catch {}
     }
     return new Set(DEFAULT_COLS);
   });
@@ -233,6 +264,7 @@ export default function PeopleTable({ eventId, userId, participantList, noteCoun
   const [exportingIds, setExportingIds] = useState(new Set());
   // v1.0-pre: per-row resend-confirmation busy state. Same pattern.
   const [resendingIds, setResendingIds] = useState(new Set());
+  const [remindingIds, setRemindingIds] = useState(new Set());
   const handleExportParticipant = async (p) => {
     if (!p || !eventId || exportingIds.has(p.id)) return;
     setExportingIds(prev => new Set(prev).add(p.id));
@@ -286,6 +318,26 @@ export default function PeopleTable({ eventId, userId, participantList, noteCoun
       showToast(fallbackErr, 'error');
     } finally {
       setResendingIds(prev => {
+        const next = new Set(prev);
+        next.delete(p.id);
+        return next;
+      });
+    }
+  };
+
+  const handlePaymentReminder = async (p, days) => {
+    if (!p || !eventId || days <= 3 || p.registration_status !== 'pending' || remindingIds.has(p.id)) return;
+    setRemindingIds(prev => new Set(prev).add(p.id));
+    try {
+      await participantsApi.paymentReminder(eventId, p.id);
+      showToast(t('people.payment_reminder.success', { name: `${p.first_name} ${p.last_name}` }), 'success');
+    } catch (err) {
+      const fallbackErr = err?.i18nKey || err?.friendlyKey
+        ? err
+        : new Error(t('people.payment_reminder.error'));
+      showToast(fallbackErr, 'error');
+    } finally {
+      setRemindingIds(prev => {
         const next = new Set(prev);
         next.delete(p.id);
         return next;
@@ -476,6 +528,10 @@ export default function PeopleTable({ eventId, userId, participantList, noteCoun
         case 'gender': va = a.gender || ''; vb = b.gender || ''; break;
         case 'date_of_birth': va = a.date_of_birth || ''; vb = b.date_of_birth || ''; break;
         case 'registered_at': va = a.created_at || ''; vb = b.created_at || ''; break;
+        case 'days_since_registration':
+          va = daysSinceRegistration(a.created_at, eventTimezone, counterToday) ?? -1;
+          vb = daysSinceRegistration(b.created_at, eventTimezone, counterToday) ?? -1;
+          break;
         case 'checked_in': va = a.checked_in ? '1' : '0'; vb = b.checked_in ? '1' : '0'; break;
         case 'country': va = a.country || ''; vb = b.country || ''; break;
         case 'church_organisation': va = a.church_organisation || ''; vb = b.church_organisation || ''; break;
@@ -488,7 +544,7 @@ export default function PeopleTable({ eventId, userId, participantList, noteCoun
       return 0;
     });
     return list;
-  }, [participantList, search, statusFilter, sortCol, sortDir, markDefs, markAssignments]);
+  }, [participantList, search, statusFilter, sortCol, sortDir, markDefs, markAssignments, eventTimezone, counterToday]);
 
   const startEdit = async (p, field) => {
     if (!isAdmin) return;
@@ -1062,6 +1118,35 @@ export default function PeopleTable({ eventId, userId, participantList, noteCoun
         );
       case 'registered_at':
         return <span className="text-xs" style={{ color: 'var(--text-subtle)' }}>{p.created_at ? formatDateTime(p.created_at) : '—'}</span>;
+      case 'days_since_registration': {
+        const days = daysSinceRegistration(p.created_at, eventTimezone, counterToday);
+        if (days === null) return <span style={{ color: 'var(--text-subtle)' }}>—</span>;
+        const colorsByTier = {
+          confirmed: { background: 'var(--success-tint)', color: 'var(--success-color)' },
+          overdue: { background: 'var(--alert-tint)', color: 'var(--alert-burgundy)' },
+          reminder: { background: 'var(--pending-tint)', color: 'var(--pending-color)' },
+          recent: { background: 'var(--neutral-tint)', color: 'var(--text-subtle)' },
+        };
+        const colors = colorsByTier[registrationAgeTier(days, p.registration_status)];
+        return (
+          <span className="inline-flex items-center gap-2">
+            <span className="text-xs font-semibold px-1.5 py-0.5 rounded" style={colors}>{days}</span>
+            {canDelete && days > 3 && p.registration_status === 'pending' && (
+              <button
+                type="button"
+                onClick={() => handlePaymentReminder(p, days)}
+                disabled={remindingIds.has(p.id)}
+                title={t('people.payment_reminder.hint')}
+                aria-label={t('people.payment_reminder.cta')}
+                className="text-xs font-semibold hover:underline disabled:opacity-50"
+                style={{ color: 'var(--io-accent)' }}
+              >
+                {remindingIds.has(p.id) ? <span className="animate-spin inline-block">⟳</span> : '✉'} {t('people.payment_reminder.cta')}
+              </button>
+            )}
+          </span>
+        );
+      }
       case 'checked_in':
         return p.checked_in
           ? <span className="text-xs font-semibold" style={{ color: 'var(--io-accent)' }}>✓ {p.checked_in_at ? formatTime(p.checked_in_at) : ''}</span>
@@ -1428,6 +1513,7 @@ export default function PeopleTable({ eventId, userId, participantList, noteCoun
                 case 'church_organisation': return !!p.church_organisation;
                 case 'message': return !!p.message;
                 case 'registered_at': return !!p.created_at;
+                case 'days_since_registration': return !!p.created_at;
                 case 'checked_in': return !!p.checked_in;
                 default:
                   // Custom-field columns use `cf_<id>` naming upstream

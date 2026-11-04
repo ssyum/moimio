@@ -471,7 +471,13 @@ export default function EventDetailPage() {
       danger: true,
     });
     if (!ok) return;
-    try { await participantsApi.delete(participantId); await loadData(); }
+    try {
+      const result = await participantsApi.delete(participantId);
+      await loadData();
+      if (result?.email_sent === false) {
+        showToast(new Error(t('people.cancellation_email.error')), 'error');
+      }
+    }
     catch (err) {
       // v0.70d-3c-12: dual-fire toast + banner. The setError still
       // updates the top-of-page banner (defence in depth — survives
@@ -804,6 +810,7 @@ export default function EventDetailPage() {
       {section === 'people' && (
         <PeopleTable
           eventId={eventId}
+          eventTimezone={event?.timezone || 'UTC'}
           userId={userId}
           participantList={participantList}
           noteCounts={noteCounts}

@@ -32,6 +32,16 @@ EMAIL_TEMPLATE_KEYS = (
     "receipt_group_code_title",
     "receipt_group_code_hint",
     "receipt_closing",
+    "reminder_subject",
+    "reminder_preheader",
+    "reminder_hi",
+    "reminder_body",
+    "reminder_closing",
+    "cancellation_subject",
+    "cancellation_preheader",
+    "cancellation_hi",
+    "cancellation_body",
+    "cancellation_closing",
 )
 EMAIL_TEMPLATE_VALUE_MAX_LEN = 2000
 EMAIL_TEMPLATE_PLACEHOLDERS = {
@@ -41,6 +51,13 @@ EMAIL_TEMPLATE_PLACEHOLDERS = {
     "receipt_subject": {"event"},
     "receipt_hi": {"name"},
     "receipt_body": {"event"},
+    "reminder_subject": {"event"},
+    "reminder_hi": {"name"},
+    "reminder_body": {"event", "days"},
+    "reminder_closing": set(),
+    "cancellation_subject": {"event"},
+    "cancellation_hi": {"name"},
+    "cancellation_body": {"event"},
 }
 
 

@@ -32,11 +32,26 @@ const FIELDS = {
     ['receipt_group_code_hint', 'group_hint'],
     ['receipt_closing', 'closing'],
   ],
+  reminder: [
+    ['reminder_subject', 'subject'],
+    ['reminder_preheader', 'preheader'],
+    ['reminder_hi', 'greeting'],
+    ['reminder_body', 'body'],
+    ['reminder_closing', 'closing'],
+  ],
+  cancellation: [
+    ['cancellation_subject', 'subject'],
+    ['cancellation_preheader', 'preheader'],
+    ['cancellation_hi', 'greeting'],
+    ['cancellation_body', 'body'],
+    ['cancellation_closing', 'closing'],
+  ],
 };
 
 const TEXTAREA_FIELDS = new Set([
   'confirm_body', 'confirm_fallback_pre', 'confirm_footer',
   'receipt_body', 'receipt_group_code_hint', 'receipt_closing',
+  'reminder_body', 'reminder_closing', 'cancellation_body', 'cancellation_closing',
 ]);
 
 export default function EmailTemplatesPanel({ eventId }) {
@@ -143,6 +158,24 @@ export default function EmailTemplatesPanel({ eventId }) {
         onChange={updateField}
         onSave={handleSave}
       />
+      <EmailTemplateSection
+        kind="reminder"
+        templates={templates}
+        loading={loading || !loaded}
+        saving={saving}
+        saved={saved}
+        onChange={updateField}
+        onSave={handleSave}
+      />
+      <EmailTemplateSection
+        kind="cancellation"
+        templates={templates}
+        loading={loading || !loaded}
+        saving={saving}
+        saved={saved}
+        onChange={updateField}
+        onSave={handleSave}
+      />
       <ToastHost />
     </section>
   );
@@ -190,7 +223,7 @@ function EmailTemplateSection({
             {t(`workspace.email.field.${label}`)}
             {TEXTAREA_FIELDS.has(field) ? (
               <textarea
-                rows={field === 'confirm_body' || field === 'receipt_body' ? 3 : 2}
+                rows={field.endsWith('_body') ? 3 : 2}
                 maxLength={2000}
                 value={currentTemplates[field] || ''}
                 onChange={e => onChange(language, field, e.target.value)}

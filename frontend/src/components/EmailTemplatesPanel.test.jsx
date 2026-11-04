@@ -37,6 +37,16 @@ const templates = {
     receipt_group_code_title: 'Group code',
     receipt_group_code_hint: 'Share your group code',
     receipt_closing: 'See you soon',
+    reminder_subject: 'Payment reminder for {event}',
+    reminder_preheader: 'A reminder',
+    reminder_hi: 'Hi {name}',
+    reminder_body: 'Please pay for {event}; {days} days have passed.',
+    reminder_closing: 'Ignore if paid',
+    cancellation_subject: 'Cancelled: {event}',
+    cancellation_preheader: 'Registration update',
+    cancellation_hi: 'Hi {name}',
+    cancellation_body: 'Your registration for {event} was cancelled.',
+    cancellation_closing: 'Contact the organisers',
   },
 };
 
@@ -53,10 +63,16 @@ describe('EmailTemplatesPanel', () => {
 
     const receiptSummary = screen.getByText('workspace.email.receipt');
     const confirmationSummary = screen.getByText('workspace.email.confirmation');
+    const reminderSummary = screen.getByText('workspace.email.reminder');
+    const cancellationSummary = screen.getByText('workspace.email.cancellation');
     const receipt = receiptSummary.closest('details');
     const confirmation = confirmationSummary.closest('details');
+    const reminder = reminderSummary.closest('details');
+    const cancellation = cancellationSummary.closest('details');
     expect(receipt.open).toBe(false);
     expect(confirmation.open).toBe(false);
+    expect(reminder.open).toBe(false);
+    expect(cancellation.open).toBe(false);
 
     fireEvent.click(receiptSummary);
     fireEvent.click(confirmationSummary);
@@ -86,6 +102,25 @@ describe('EmailTemplatesPanel', () => {
         }),
       );
     });
+
+    fireEvent.click(reminderSummary);
+    const reminderBody = within(reminder).getByLabelText('workspace.email.field.body');
+    expect(reminderBody.value).toBe('Please pay for {event}; {days} days have passed.');
+    fireEvent.change(reminderBody, { target: { value: 'Payment for {event} is due after {days} days.' } });
+    fireEvent.click(within(reminder).getByRole('button', { name: 'common.save' }));
+    await waitFor(() => {
+      expect(workspaceSettings.updateEmailTemplates).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          en: expect.objectContaining({
+            reminder_body: 'Payment for {event} is due after {days} days.',
+          }),
+        }),
+      );
+    });
+
+    fireEvent.click(cancellationSummary);
+    expect(within(cancellation).getByLabelText('workspace.email.field.body').value)
+      .toBe('Your registration for {event} was cancelled.');
 
     fireEvent.click(within(receipt).getByRole('button', { name: 'workspace.email.test' }));
     await waitFor(() => expect(email.test).toHaveBeenCalledWith('event-1'));
