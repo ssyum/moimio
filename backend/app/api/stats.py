@@ -51,7 +51,7 @@ async def event_stats(
           "confirmed": int,
           "pending": int,
           "cancelled": int,
-          "total_active": int,     # confirmed + pending (what you'd normally "count")
+          "total_active": int,     # confirmed + paid + pending
         },
         "checkin": {
           "checked_in": int,
@@ -95,11 +95,12 @@ async def event_stats(
     status_counts = {status: n for status, n in status_q.all()}
     confirmed = status_counts.get(RegistrationStatus.CONFIRMED, 0)
     pending = status_counts.get(RegistrationStatus.PENDING, 0)
+    paid = status_counts.get(RegistrationStatus.PAID, 0)
     cancelled = status_counts.get(RegistrationStatus.CANCELLED, 0)
-    total_active = confirmed + pending
+    total_active = confirmed + paid + pending
 
     # ─── Check-in counts ────────────────────────────────────────────────
-    # Only counts confirmed+pending participants — cancelled shouldn't
+    # Only counts active participants — cancelled shouldn't
     # contribute to the check-in progress bar.
     checkin_q = await db.execute(
         select(
@@ -121,7 +122,7 @@ async def event_stats(
     # so the per-category list_units() call is redundant. Query count
     # drops from (1 + 2N) to just the list_categories call.
     # v0.89 #29: add a participant-coverage metric — what fraction of
-    # active (= confirmed + pending) registrants are allocated in this
+    # active (= confirmed + paid + pending) registrants are allocated in this
     # category. This is the more meaningful headline number for the
     # Reports page; capacity-based % was easy to misread as "of
     # participants" when it's actually "of bed/seat slots".
@@ -182,6 +183,7 @@ async def event_stats(
     return {
         "registration": {
             "confirmed": confirmed,
+            "paid": paid,
             "pending": pending,
             "cancelled": cancelled,
             "total_active": total_active,

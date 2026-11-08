@@ -276,9 +276,13 @@ async def run_engine(
         return {"error_key": "errors.allocation.no_units"}
 
     if include_pending:
-        eligible_statuses = [RegistrationStatus.CONFIRMED, RegistrationStatus.PENDING]
+        eligible_statuses = [
+            RegistrationStatus.CONFIRMED,
+            RegistrationStatus.PAID,
+            RegistrationStatus.PENDING,
+        ]
     else:
-        eligible_statuses = [RegistrationStatus.CONFIRMED]
+        eligible_statuses = [RegistrationStatus.CONFIRMED, RegistrationStatus.PAID]
     parts_q = await db.execute(
         select(Participant).where(
             Participant.event_id == event_id,

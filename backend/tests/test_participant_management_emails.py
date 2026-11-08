@@ -89,7 +89,13 @@ async def test_payment_reminder_sends_current_day_count(client, db, monkeypatch)
 
 
 @pytest.mark.asyncio
-async def test_final_confirmation_sends_to_confirmed_participant(client, db, monkeypatch):
+@pytest.mark.parametrize(
+    "registration_status",
+    [RegistrationStatus.CONFIRMED, RegistrationStatus.PAID],
+)
+async def test_final_confirmation_sends_to_active_confirmed_participant(
+    client, db, monkeypatch, registration_status
+):
     event = Event(name="Gathering", timezone="UTC", status=EventStatus.OPEN)
     db.add(event)
     await db.flush()
@@ -98,7 +104,7 @@ async def test_final_confirmation_sends_to_confirmed_participant(client, db, mon
         first_name="Sam",
         last_name="Example",
         email="sam@example.org",
-        registration_status=RegistrationStatus.CONFIRMED,
+        registration_status=registration_status,
         preferred_language="en",
     )
     db.add(participant)

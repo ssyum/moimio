@@ -40,7 +40,7 @@ export function daysSinceRegistration(registeredAt, timeZone, now = new Date()) 
 }
 
 export function registrationAgeTier(days, registrationStatus) {
-  if (registrationStatus === 'confirmed') return 'confirmed';
+  if (registrationStatus === 'confirmed' || registrationStatus === 'paid') return 'confirmed';
   if (days > 7) return 'overdue';
   if (days >= 4) return 'reminder';
   return 'recent';

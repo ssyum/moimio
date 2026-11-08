@@ -17,6 +17,7 @@ from app.core.database import Base
 class RegistrationStatus(str, enum.Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
+    PAID = "paid"
     CANCELLED = "cancelled"
 
 

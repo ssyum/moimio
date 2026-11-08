@@ -22,9 +22,9 @@ Open **People** from the sidebar. You see a table with one row per registration.
 - **Name** — full name as registered, followed by the participant's mark dots (see [Marks](04-marks.md)). Always shown.
 - **Email**.
 - **Group code** — the code they registered with, or the one Moimio generated for them. Hover over it (or long-press on a phone) to see who else shares that code.
-- **Status** — Pending / Confirmed / Cancelled (colour-coded).
+- **Status** — Pending / Confirmed / Paid / Cancelled (colour-coded).
 - **Registered** — date and time of the registration.
-- **Days since registration** — calendar days since signup in the event's timezone (registration day is day 0). Pending registrations show grey for days 0–3, yellow for days 4–7, and red after day 7. Confirmed registrations are green. For a pending registration after day 3, **Remind** sends the payment reminder email; it can be sent again if needed. For any confirmed registration, **Confirm** sends the final status-confirmation email.
+- **Days since registration** — calendar days since signup in the event's timezone (registration day is day 0). Pending registrations show grey for days 0–3, yellow for days 4–7, and red after day 7. Confirmed and paid registrations are green. For a pending registration after day 3, **Remind** sends the payment reminder email; it can be sent again if needed. For a confirmed or paid registration, **Confirm** sends the final status-confirmation email.
 - **Age** — age on the event's start date. If the date of birth or event start date is missing, Moimio shows a dash. For a participant who will be under 18, **Send form** emails the event's consent-form PDF and a private upload link. After the form is uploaded, event admins can download or delete it from this column.
 - **Notes** — opens the notes for that participant; a small number shows how many notes there are.
 - **Actions** — per-row controls: **✉ Resend** (resend the registration email; hidden for cancelled participants), **↓ Export data** (the participant's full GDPR data export as JSON) and **Remove** (soft-delete the participant and send the editable registration-cancellation email). Export data and Remove are for event admins only.
@@ -33,7 +33,7 @@ Click **Columns** to show or hide more columns: **Age**, **Gender**, **Date of B
 
 The table supports:
 
-- **Filtering by status.** Pills at the top: **All**, **Pending**, **Confirmed**, **Cancelled**. Under **All**, cancelled people sink to the bottom of the list and their names are struck through.
+- **Filtering by status.** Pills at the top: **All**, **Pending**, **Confirmed**, **Paid**, **Cancelled**. Under **All**, cancelled people sink to the bottom of the list and their names are struck through.
 - **Sorting** — click any column header; click again to reverse.
 - **Search** — matches name, email, group code, phone, church/organisation, and mark names. It's forgiving about accents, hyphens, apostrophes and umlaut spellings (searching "Mueller" finds "Müller").
 
@@ -57,7 +57,7 @@ You need permission to edit people (event admins, or staff with write access to 
 
 **Group code** — click the code (or **+ Add** if there's none), type, press Enter or click ✓. Saves immediately.
 
-**Status** — click the status pill. Three pills appear (Pending / Confirmed / Cancelled); click the one you want. ✕ closes without changing anything. See [Registration statuses](#registration-statuses) below.
+**Status** — click the status pill. Four pills appear (Pending / Confirmed / Paid / Cancelled); click the one you want. ✕ closes without changing anything. See [Registration statuses](#registration-statuses) below.
 
 **Gender, date of birth, phone, address, country, church/organisation** — click the value, change it, press Enter (or click ✓). A **Confirm change** window shows the old value → new value. Click **Confirm change** to save; **Cancel** discards.
 
@@ -77,6 +77,7 @@ Every participant has a status. The status drives almost everything downstream �
 |---|---|---|
 | **Pending** | Registered but hasn't clicked the email confirmation link yet. | Only happens when **Require email confirmation for registration** is switched on (More ▸ Registration form). |
 | **Confirmed** | Registration is complete. | Straight after registering when email confirmation is off (the default), after clicking the email link, after a CSV import, or when an admin sets it by hand. |
+| **Paid** | The participant has paid. This is an active registration, like Confirmed, and is included in allocation and check-in. Payment reminders are not offered. | Set by an admin after receiving payment. |
 | **Cancelled** | The participant withdrew, or you cancelled on their behalf. | Set by an admin. Cancelling takes the person out of any groups they were placed in. |
 
 By default the allocation engine places pending participants too (the **Include unconfirmed people** setting — see [section 6](06-allocation-engine.md)).
@@ -85,6 +86,7 @@ You can change status from the row when:
 
 - An email never arrived (spam filter ate it; old address). Change status to **Confirmed** by hand.
 - Someone calls to cancel. Change status to **Cancelled**.
+- Someone pays the event fee. Change status to **Paid**.
 - Someone double-registered. Cancel one of them.
 
 You can switch back and forth between statuses freely.

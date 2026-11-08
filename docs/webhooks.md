@@ -322,7 +322,7 @@ so a receiver never hears about a change that was rolled back.
 | `event.created` | An event is created | `event_id`, `created_at` | v1.0.0h |
 | `event.deleted` | An event is deleted (it replaced `event.cancelled`, which is no longer emitted) | `event_id`, `deleted_at` | v1.0.0h-1 |
 | `event.allocated` | An allocation proposal is committed for one group type. Fires again on every re-run, and once per group type; manual drag-and-drop does not fire it | `event_id` | v1.0.0y |
-| `event.over_cap` | Once per event, the first time its active roster (confirmed + pending, removed people excluded) exceeds `MOIMIO_PARTICIPANT_CAP`. Never fires when that variable is unset, which is the default | `event_id`, `participant_estimate` (rounded **up** to the next 50, never the exact count), `cap` | v1.0.0y |
+| `event.over_cap` | Once per event, the first time its active roster (confirmed + paid + pending, removed people excluded) exceeds `MOIMIO_PARTICIPANT_CAP`. Never fires when that variable is unset, which is the default | `event_id`, `participant_estimate` (rounded **up** to the next 50, never the exact count), `cap` | v1.0.0y |
 | `workspace.delete_requested` | A super admin confirms workspace deletion in the Danger Zone (shown on hosted workspaces only). Moimio itself deletes nothing when this fires; it is a signal for a hosting control plane | `confirmed_by_user_id`, `confirmed_by_email`, `confirmed_at` | v1.0.0t |
 
 An endpoint subscribed to `*` receives every type above, including

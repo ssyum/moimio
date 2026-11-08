@@ -648,7 +648,7 @@ async def send_final_confirmation(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Send an organiser-triggered confirmation notice to a confirmed participant."""
+    """Send an organiser-triggered confirmation notice to an active participant."""
     event = await get_event_by_id(db, event_id)
     if not event:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"key": "errors.event.not_found"})
@@ -657,7 +657,10 @@ async def send_final_confirmation(
     participant = await get_participant_by_id(db, participant_id)
     if not participant or participant.event_id != event_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"key": "errors.participant.not_found"})
-    if participant.registration_status != RegistrationStatus.CONFIRMED:
+    if participant.registration_status not in (
+        RegistrationStatus.CONFIRMED,
+        RegistrationStatus.PAID,
+    ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={"key": "errors.participant.final_confirmation_not_applicable"},

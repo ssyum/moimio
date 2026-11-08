@@ -205,6 +205,7 @@ export default function ReportsPanel({ eventId, eventName, phase }) {
               <p className="text-[10px] mt-1" style={{ color: 'var(--text-subtle)' }}>
                 {t('reports.tile.registration_detail', {
                   confirmed: stats.registration.confirmed,
+                  paid: stats.registration.paid,
                   pending: stats.registration.pending,
                   cancelled: stats.registration.cancelled,
                 })}

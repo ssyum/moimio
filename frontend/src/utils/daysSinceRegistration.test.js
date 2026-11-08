@@ -47,5 +47,6 @@ describe('days since registration', () => {
     expect(registrationAgeTier(7, 'pending')).toBe('reminder');
     expect(registrationAgeTier(8, 'pending')).toBe('overdue');
     expect(registrationAgeTier(20, 'confirmed')).toBe('confirmed');
+    expect(registrationAgeTier(20, 'paid')).toBe('confirmed');
   });
 });

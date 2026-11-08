@@ -126,7 +126,7 @@ class Settings(BaseSettings):
     # ─── Participant cap (v1.0.0y) ───
     #
     # Optional. When set (an integer, e.g. 300), CE watches each event's
-    # active roster (confirmed + pending, excluding removed) and — the
+    # active roster (confirmed + paid + pending, excluding removed) and — the
     # first time it crosses this number — emits ONE `event.over_cap`
     # webhook carrying an APPROXIMATE band (never the exact count) plus
     # this cap value. It never blocks registration; it only signals. When

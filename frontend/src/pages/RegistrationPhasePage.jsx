@@ -121,6 +121,10 @@ export default function RegistrationPhasePage({
     () => participantList.filter(p => p.registration_status === 'confirmed').length,
     [participantList]
   );
+  const paidCount = useMemo(
+    () => participantList.filter(p => p.registration_status === 'paid').length,
+    [participantList]
+  );
   const pendingCount = useMemo(
     () => participantList.filter(p => p.registration_status === 'pending').length,
     [participantList]
@@ -254,6 +258,16 @@ export default function RegistrationPhasePage({
                   {confirmedCount}
                 </p>
               </div>
+              {paidCount > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--text-subtle)' }}>
+                    {t('status.paid')}
+                  </p>
+                  <p className="font-heading font-semibold text-xl" style={{ color: 'var(--success-color)' }}>
+                    {paidCount}
+                  </p>
+                </div>
+              )}
               {pendingCount > 0 && (
                 <div>
                   <p className="text-[10px] uppercase tracking-caps font-semibold" style={{ color: 'var(--text-subtle)' }}>

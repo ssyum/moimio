@@ -258,10 +258,9 @@ async def confirm_participant(
 
       ``('fresh')``     — token matched a PENDING participant; status
                           flipped to CONFIRMED. First legitimate visit.
-      ``('already')``   — token matched a CONFIRMED participant. Idempotent
-                          re-visit (user clicked an old email, bookmark,
-                          etc.). No action taken; safe to show a calm
-                          "already confirmed" message.
+      ``('already')``   — token matched a CONFIRMED or PAID participant.
+                          Idempotent re-visit (user clicked an old email,
+                          bookmark, etc.). No action taken.
       ``('invalid')``   — no match. Token is bad, stale-and-replaced (the
                           participant re-registered generating a new token),
                           or the participant is cancelled / soft-deleted.
@@ -295,7 +294,10 @@ async def confirm_participant(
         # organiser if they want to re-register.
         return None, "invalid"
 
-    if participant.registration_status == RegistrationStatus.CONFIRMED:
+    if participant.registration_status in (
+        RegistrationStatus.CONFIRMED,
+        RegistrationStatus.PAID,
+    ):
         # Idempotent re-visit. Return the participant so the caller can
         # still reference them (e.g. for logging), but flag 'already' so
         # they don't trigger another confirmation email.
@@ -488,7 +490,7 @@ async def maybe_signal_over_cap(
     """Emit `event.over_cap` ONCE if this event's active roster has crossed
     the configured participant cap.
 
-    Active roster = confirmed + pending, excluding removed (deleted_at set).
+    Active roster = confirmed + paid + pending, excluding removed (deleted_at set).
     No-op when:
       - no cap is configured (MOIMIO_PARTICIPANT_CAP unset) — self-hosters;
       - the event has already signalled (over_cap_signalled is true);
@@ -515,7 +517,11 @@ async def maybe_signal_over_cap(
             .where(
                 Participant.event_id == event_id,
                 Participant.registration_status.in_(
-                    [RegistrationStatus.PENDING, RegistrationStatus.CONFIRMED]
+                    [
+                        RegistrationStatus.PENDING,
+                        RegistrationStatus.CONFIRMED,
+                        RegistrationStatus.PAID,
+                    ]
                 ),
                 Participant.deleted_at.is_(None),
             )

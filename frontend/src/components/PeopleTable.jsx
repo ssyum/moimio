@@ -58,7 +58,12 @@ const DEFAULT_COLS = BUILTIN_COLUMNS.filter(c => c.default || c.always).map(c =>
 // validating against it would race the restore. Sorting by a custom field still
 // works for the visit; it just is not remembered.
 const REMEMBERABLE_SORTS = BUILTIN_COLUMNS.map(c => c.id);
-const STATUS_LABELS_KEYS = { pending: 'status.pending', confirmed: 'status.confirmed', cancelled: 'status.cancelled' };
+const STATUS_LABELS_KEYS = {
+  pending: 'status.pending',
+  confirmed: 'status.confirmed',
+  paid: 'status.paid',
+  cancelled: 'status.cancelled',
+};
 
 // v1.0-pre #2: editable-field configuration for the People table.
 // Drives the inline edit + confirmation-modal flow for fields beyond
@@ -94,7 +99,7 @@ const EDITABLE_FIELDS = {
   church_organisation: {
                    inputType: 'text',     labelKey: 'people.col.church_organisation', readField: 'church_organisation' },
 };
-const ALL_STATUSES = ['pending', 'confirmed', 'cancelled'];
+const ALL_STATUSES = ['pending', 'confirmed', 'paid', 'cancelled'];
 
 export default function PeopleTable({ eventId, eventTimezone, eventStartDate, userId, participantList, noteCounts, isAdmin, canDelete, marksPerm, onDataChange, onOpenNotes, onDelete, initialStatusFilter = '' }) {
   // v0.50f-1: mark modal opens for everyone (read is implicit). The modal
@@ -349,7 +354,7 @@ export default function PeopleTable({ eventId, eventTimezone, eventStartDate, us
 
   const handleParticipantStatusEmail = async (p, days) => {
     if (!p || !eventId || sendingParticipantEmailIds.has(p.id)) return;
-    const isConfirmed = p.registration_status === 'confirmed';
+    const isConfirmed = ['confirmed', 'paid'].includes(p.registration_status);
     if (!isConfirmed && (p.registration_status !== 'pending' || days <= 3)) return;
     setSendingParticipantEmailIds(prev => new Set(prev).add(p.id));
     try {
@@ -866,6 +871,7 @@ export default function PeopleTable({ eventId, eventTimezone, eventStartDate, us
   const STATUS_PILL = {
     pending:   { bg: 'var(--pending-tint)', color: 'var(--pending-color)' },
     confirmed: { bg: 'var(--accent-tint)',  color: 'var(--io-accent)' },
+    paid:      { bg: 'var(--success-tint)', color: 'var(--success-color)' },
     cancelled: { bg: 'var(--alert-tint)',   color: 'var(--alert-burgundy)' },
   };
 
@@ -1293,7 +1299,7 @@ export default function PeopleTable({ eventId, eventTimezone, eventStartDate, us
       case 'days_since_registration': {
         const days = daysSinceRegistration(p.created_at, eventTimezone, counterToday);
         if (days === null) return <span style={{ color: 'var(--text-subtle)' }}>—</span>;
-        const isConfirmed = p.registration_status === 'confirmed';
+        const isConfirmed = ['confirmed', 'paid'].includes(p.registration_status);
         const canSendEmail = isConfirmed || (p.registration_status === 'pending' && days > 3);
         const actionKey = isConfirmed ? 'people.final_confirmation' : 'people.payment_reminder';
         const colorsByTier = {
