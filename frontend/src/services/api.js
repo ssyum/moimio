@@ -259,20 +259,25 @@ export const participants = {
 
 export const minorForms = {
   getTemplate: (eventId) => request(`/events/${eventId}/minor-form-template`),
-  uploadTemplate: (eventId, file) => {
+  uploadTemplate: (eventId, files) => {
     const body = new FormData();
-    body.append('file', file);
+    files.forEach(file => body.append('files', file));
     return request(`/events/${eventId}/minor-form-template`, { method: 'POST', body });
   },
-  deleteTemplate: (eventId) =>
-    request(`/events/${eventId}/minor-form-template`, { method: 'DELETE' }),
+  deleteTemplate: (eventId, storageKey) =>
+    request(`/events/${eventId}/minor-form-template/${encodeURIComponent(storageKey)}`, { method: 'DELETE' }),
   listSubmissions: (eventId) => request(`/events/${eventId}/minor-form-submissions`),
   deleteSubmission: (eventId, participantId) =>
     request(`/events/${eventId}/participants/${participantId}/minor-form-submission`, { method: 'DELETE' }),
+  deleteSubmissionFile: (eventId, participantId, storageKey) =>
+    request(
+      `/events/${eventId}/participants/${participantId}/minor-form-submissions/${encodeURIComponent(storageKey)}`,
+      { method: 'DELETE' },
+    ),
   getPublicUpload: (token) => request(`/public/minor-form-upload/${encodeURIComponent(token)}`),
-  uploadPublicSubmission: (token, file) => {
+  uploadPublicSubmission: (token, files) => {
     const body = new FormData();
-    body.append('file', file);
+    files.forEach(file => body.append('files', file));
     return request(`/public/minor-form-upload/${encodeURIComponent(token)}`, {
       method: 'POST',
       body,

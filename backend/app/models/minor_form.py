@@ -15,9 +15,9 @@ class MinorFormTemplate(Base):
 
     event_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("events.id", ondelete="CASCADE"),
-        primary_key=True,
+        nullable=False, index=True,
     )
-    storage_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(64), primary_key=True)
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -31,14 +31,23 @@ class MinorFormSubmission(Base):
         UUID(as_uuid=True), ForeignKey("participants.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    storage_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    uploaded_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
     token_digest: Mapped[str | None] = mapped_column(
         String(64), nullable=True, unique=True, index=True
     )
     token_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class MinorFormSubmissionFile(Base):
+    __tablename__ = "minor_form_submission_files"
+
+    storage_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    participant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("participants.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    uploaded_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

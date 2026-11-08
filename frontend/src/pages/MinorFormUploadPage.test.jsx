@@ -34,20 +34,38 @@ describe('MinorFormUploadPage', () => {
     minorForms.uploadPublicSubmission.mockResolvedValue({ uploaded: true });
   });
 
-  it('uploads the selected PDF through its private token link', async () => {
+  it('uploads both selected PDFs through its private token link', async () => {
     renderPage();
     const input = await screen.findByLabelText('minor_form.upload_choose');
-    const file = new File(['%PDF-1.7'], 'signed.pdf', { type: 'application/pdf' });
-    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+    const files = [
+      new File(['%PDF-1.7 consent'], 'consent-signed.pdf', { type: 'application/pdf' }),
+      new File(['%PDF-1.7 privacy'], 'privacy-signed.pdf', { type: 'application/pdf' }),
+    ];
+    Object.defineProperty(input, 'files', { configurable: true, value: files });
     fireEvent.submit(input.closest('form'));
 
     await waitFor(() => {
       expect(minorForms.uploadPublicSubmission).toHaveBeenCalledWith(
         'private-token',
-        file,
+        files,
       );
     });
     expect(await screen.findByRole('status')).toHaveTextContent('minor_form.upload_complete');
+  });
+
+  it('requires exactly two PDFs', async () => {
+    renderPage();
+    const input = await screen.findByLabelText('minor_form.upload_choose');
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: [new File(['%PDF-1.7'], 'consent.pdf', { type: 'application/pdf' })],
+    });
+    fireEvent.submit(input.closest('form'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'errors.minor_form.submission_file_count',
+    );
+    expect(minorForms.uploadPublicSubmission).not.toHaveBeenCalled();
   });
 
   it('shows the API error when the upload link is expired', async () => {

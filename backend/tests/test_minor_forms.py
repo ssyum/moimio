@@ -8,7 +8,11 @@ from app.api.deps import get_current_user
 from app.core.email import send_minor_form_email
 from app.main import app
 from app.models.event import Event, EventStatus
-from app.models.minor_form import MinorFormSubmission, MinorFormTemplate
+from app.models.minor_form import (
+    MinorFormSubmission,
+    MinorFormSubmissionFile,
+    MinorFormTemplate,
+)
 from app.models.participant import Participant, RegistrationStatus
 from app.models.user import User, UserRole
 from app.services.minor_form_service import age_on_date, digest_upload_token
@@ -64,12 +68,17 @@ async def test_minor_form_email_attaches_template_and_creates_private_link(
         storage_key=f"{'a' * 32}.pdf",
         filename="consent.pdf",
     )
-    db.add_all([participant, template])
+    privacy_template = MinorFormTemplate(
+        event_id=event.id,
+        storage_key=f"{'b' * 32}.pdf",
+        filename="data privacy agreement.pdf",
+    )
+    db.add_all([participant, template, privacy_template])
     await db.commit()
     sent = {}
     monkeypatch.setattr(
         "app.api.minor_forms.read_pdf",
-        lambda key: b"%PDF-1.7 sample",
+        lambda key: b"%PDF-1.7 " + key.encode(),
     )
 
     def fake_send(**kwargs):
@@ -85,8 +94,11 @@ async def test_minor_form_email_attaches_template_and_creates_private_link(
         assert response.status_code == 200
         assert response.json()["sent"] is True
         assert sent["to_email"] == participant.email
-        assert sent["attachment_name"] == "consent.pdf"
-        assert sent["attachment_content"].startswith(b"%PDF-")
+        assert [attachment[0] for attachment in sent["attachments"]] == [
+            "consent.pdf",
+            "data privacy agreement.pdf",
+        ]
+        assert all(attachment[1].startswith(b"%PDF-") for attachment in sent["attachments"])
         assert "/minor-form-upload/" in sent["upload_link"]
         token = sent["upload_link"].rsplit("/", 1)[-1]
         submission = await db.get(MinorFormSubmission, participant.id)
@@ -180,16 +192,30 @@ async def test_admin_can_upload_download_and_delete_private_forms(
     db.add(
         MinorFormSubmission(
             participant_id=participant.id,
-            storage_key=f"{'f' * 32}.pdf",
-            filename="signed.pdf",
-            uploaded_at=datetime.now(timezone.utc),
         )
+    )
+    db.add_all(
+        [
+            MinorFormSubmissionFile(
+                participant_id=participant.id,
+                storage_key=f"{'f' * 32}.pdf",
+                filename="signed-consent.pdf",
+                uploaded_at=datetime.now(timezone.utc),
+            ),
+            MinorFormSubmissionFile(
+                participant_id=participant.id,
+                storage_key=f"{'g' * 32}.pdf",
+                filename="signed-privacy.pdf",
+                uploaded_at=datetime.now(timezone.utc),
+            ),
+        ]
     )
     await db.commit()
     deleted = []
+    new_template_keys = iter([f"{'a' * 32}.pdf", f"{'b' * 32}.pdf"])
     monkeypatch.setattr(
         "app.api.minor_forms.write_pdf",
-        lambda content: f"{'a' * 32}.pdf",
+        lambda content: next(new_template_keys),
     )
     monkeypatch.setattr(
         "app.api.minor_forms.read_pdf",
@@ -200,17 +226,30 @@ async def test_admin_can_upload_download_and_delete_private_forms(
     try:
         invalid = await client.post(
             f"/api/events/{event.id}/minor-form-template",
-            files={"file": ("not-a-pdf.txt", b"not a PDF", "text/plain")},
+            files={"files": ("not-a-pdf.txt", b"not a PDF", "text/plain")},
         )
         assert invalid.status_code == 422
         uploaded = await client.post(
             f"/api/events/{event.id}/minor-form-template",
-            files={"file": ("blank.pdf", b"%PDF-1.7 blank", "application/pdf")},
+            files=[
+                ("files", ("consent.pdf", b"%PDF-1.7 consent", "application/pdf")),
+                (
+                    "files",
+                    ("data privacy agreement.pdf", b"%PDF-1.7 privacy", "application/pdf"),
+                ),
+            ],
         )
         assert uploaded.status_code == 200
-        assert uploaded.json() == {"available": True, "filename": "blank.pdf"}
+        assert uploaded.json()["available"] is True
+        assert [file["filename"] for file in uploaded.json()["files"]] == [
+            "consent.pdf",
+            "data privacy agreement.pdf",
+        ]
         template = await client.get(f"/api/events/{event.id}/minor-form-template")
-        assert template.json() == {"available": True, "filename": "blank.pdf"}
+        assert [file["filename"] for file in template.json()["files"]] == [
+            "consent.pdf",
+            "data privacy agreement.pdf",
+        ]
 
         submissions = await client.get(
             f"/api/events/{event.id}/minor-form-submissions"
@@ -218,24 +257,55 @@ async def test_admin_can_upload_download_and_delete_private_forms(
         assert submissions.json()["submissions"][0]["participant_id"] == str(
             participant.id
         )
+        assert [file["filename"] for file in submissions.json()["submissions"][0]["files"]] == [
+            "signed-privacy.pdf",
+            "signed-consent.pdf",
+        ]
         download = await client.get(
-            f"/api/events/{event.id}/participants/{participant.id}/minor-form-submission"
+            f"/api/events/{event.id}/participants/{participant.id}/minor-form-submissions/{'f' * 32}.pdf"
         )
         assert download.status_code == 200
         assert download.content == b"%PDF-1.7 private"
         assert download.headers["content-type"] == "application/pdf"
 
         removed = await client.delete(
+            f"/api/events/{event.id}/minor-form-template/{'a' * 32}.pdf"
+        )
+        assert removed.status_code == 204
+        assert deleted == [f"{'a' * 32}.pdf"]
+        template_list = await client.get(f"/api/events/{event.id}/minor-form-template")
+        assert [file["filename"] for file in template_list.json()["files"]] == [
+            "data privacy agreement.pdf",
+        ]
+
+        removed = await client.delete(
+            f"/api/events/{event.id}/participants/{participant.id}/minor-form-submissions/{'f' * 32}.pdf"
+        )
+        assert removed.status_code == 204
+        assert deleted[-1] == f"{'f' * 32}.pdf"
+        remaining = await client.get(
+            f"/api/events/{event.id}/minor-form-submissions"
+        )
+        assert [
+            file["filename"]
+            for file in remaining.json()["submissions"][0]["files"]
+        ] == ["signed-privacy.pdf"]
+
+        removed = await client.delete(
             f"/api/events/{event.id}/participants/{participant.id}/minor-form-submission"
         )
         assert removed.status_code == 204
-        assert deleted == [f"{'f' * 32}.pdf"]
+        assert set(deleted) == {
+            f"{'g' * 32}.pdf",
+            f"{'a' * 32}.pdf",
+            f"{'f' * 32}.pdf",
+        }
     finally:
         app.dependency_overrides.pop(get_current_user, None)
 
 
 @pytest.mark.asyncio
-async def test_public_upload_replaces_previous_pdf(client, db, monkeypatch):
+async def test_public_upload_replaces_previous_pdfs(client, db, monkeypatch):
     event = Event(name="Gathering", start_date=date(2026, 11, 4))
     db.add(event)
     await db.flush()
@@ -252,15 +322,24 @@ async def test_public_upload_replaces_previous_pdf(client, db, monkeypatch):
     token = "private-link-token"
     submission = MinorFormSubmission(
         participant_id=participant.id,
-        storage_key=f"{'b' * 32}.pdf",
-        filename="old.pdf",
-        uploaded_at=datetime.now(timezone.utc),
         token_digest=digest_upload_token(token),
         token_expires_at=datetime.now(timezone.utc) + timedelta(days=1),
     )
-    db.add(submission)
+    db.add_all(
+        [
+            submission,
+            MinorFormSubmissionFile(
+                participant_id=participant.id,
+                storage_key=f"{'b' * 32}.pdf",
+                filename="old.pdf",
+                uploaded_at=datetime.now(timezone.utc),
+            ),
+        ]
+    )
     await db.commit()
-    written = iter([f"{'c' * 32}.pdf", f"{'d' * 32}.pdf"])
+    written = iter(
+        [f"{'c' * 32}.pdf", f"{'d' * 32}.pdf", f"{'e' * 32}.pdf", f"{'g' * 32}.pdf"]
+    )
     deleted = []
     monkeypatch.setattr(
         "app.api.minor_forms.write_pdf",
@@ -270,20 +349,57 @@ async def test_public_upload_replaces_previous_pdf(client, db, monkeypatch):
     try:
         invalid = await client.post(
             f"/api/public/minor-form-upload/{token}",
-            files={"file": ("signed.pdf", b"not a PDF", "application/pdf")},
+            files=[("files", ("signed.pdf", b"not a PDF", "application/pdf"))],
         )
         assert invalid.status_code == 422
-        for expected_key in (f"{'c' * 32}.pdf", f"{'d' * 32}.pdf"):
-            response = await client.post(
-                f"/api/public/minor-form-upload/{token}",
-                files={"file": ("signed.pdf", b"%PDF-1.7 signed", "application/pdf")},
+        response = await client.post(
+            f"/api/public/minor-form-upload/{token}",
+            files=[
+                ("files", ("signed-consent.pdf", b"%PDF-1.7 consent", "application/pdf")),
+                ("files", ("signed-privacy.pdf", b"%PDF-1.7 privacy", "application/pdf")),
+            ],
+        )
+        assert response.status_code == 200
+        assert response.json() == {
+            "uploaded": True,
+            "files": ["signed-consent.pdf", "signed-privacy.pdf"],
+        }
+        uploaded_files = (
+            await db.scalars(
+                select(MinorFormSubmissionFile).where(
+                    MinorFormSubmissionFile.participant_id == participant.id
+                )
             )
-            assert response.status_code == 200
-            assert response.json() == {"uploaded": True}
-            await db.refresh(submission)
-            assert submission.storage_key == expected_key
-            assert submission.filename == "signed.pdf"
-        assert deleted == [f"{'b' * 32}.pdf", f"{'c' * 32}.pdf"]
+        ).all()
+        assert {file.storage_key for file in uploaded_files} == {
+            f"{'c' * 32}.pdf",
+            f"{'d' * 32}.pdf",
+        }
+        assert deleted == [f"{'b' * 32}.pdf"]
+        response = await client.post(
+            f"/api/public/minor-form-upload/{token}",
+            files=[
+                ("files", ("new-consent.pdf", b"%PDF-1.7 new consent", "application/pdf")),
+                ("files", ("new-privacy.pdf", b"%PDF-1.7 new privacy", "application/pdf")),
+            ],
+        )
+        assert response.status_code == 200
+        assert deleted == [
+            f"{'b' * 32}.pdf",
+            f"{'c' * 32}.pdf",
+            f"{'d' * 32}.pdf",
+        ]
+        uploaded_files = (
+            await db.scalars(
+                select(MinorFormSubmissionFile).where(
+                    MinorFormSubmissionFile.participant_id == participant.id
+                )
+            )
+        ).all()
+        assert {file.storage_key for file in uploaded_files} == {
+            f"{'e' * 32}.pdf",
+            f"{'g' * 32}.pdf",
+        }
     finally:
         await db.delete(submission)
         await db.delete(participant)
@@ -339,10 +455,13 @@ async def test_removing_participant_deletes_the_private_submission(
     await db.flush()
     submission = MinorFormSubmission(
         participant_id=participant.id,
+    )
+    submitted_file = MinorFormSubmissionFile(
+        participant_id=participant.id,
         storage_key=f"{'e' * 32}.pdf",
         filename="signed.pdf",
     )
-    db.add(submission)
+    db.add_all([submission, submitted_file])
     await db.commit()
     deleted = []
     monkeypatch.setattr("app.api.participants.delete_pdf", deleted.append)
@@ -380,8 +499,10 @@ def test_minor_form_email_renders_upload_link_and_pdf_attachment(monkeypatch):
         "Sam",
         "Gathering 2026",
         "https://example.org/minor-form-upload/secret-token",
-        "consent.pdf",
-        b"%PDF-1.7 form",
+        [
+            ("consent.pdf", b"%PDF-1.7 form", "application/pdf"),
+            ("data privacy agreement.pdf", b"%PDF-1.7 privacy", "application/pdf"),
+        ],
         email_strings={
             "minor_form_subject": "Consent for {event}",
             "minor_form_hi": "Hi {name}",
@@ -392,5 +513,6 @@ def test_minor_form_email_renders_upload_link_and_pdf_attachment(monkeypatch):
     assert sent["subject"] == "Consent for Gathering 2026"
     assert 'href="https://example.org/minor-form-upload/secret-token"' in sent["html"]
     assert sent["attachments"] == [
-        ("consent.pdf", b"%PDF-1.7 form", "application/pdf")
+        ("consent.pdf", b"%PDF-1.7 form", "application/pdf"),
+        ("data privacy agreement.pdf", b"%PDF-1.7 privacy", "application/pdf"),
     ]

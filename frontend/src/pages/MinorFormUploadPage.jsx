@@ -4,6 +4,8 @@ import { minorForms as minorFormsApi } from '../services/api';
 import { useI18n } from '../hooks/useI18n';
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_FILES = 2;
+const MAX_TOTAL_BYTES = 18 * 1024 * 1024;
 
 export default function MinorFormUploadPage() {
   const { token } = useParams();
@@ -25,21 +27,29 @@ export default function MinorFormUploadPage() {
 
   const handleUpload = async (event) => {
     event.preventDefault();
-    const file = inputRef.current?.files?.[0];
-    if (!file || uploading) return;
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setError(new Error(t('errors.minor_form.pdf_only')));
+    const files = Array.from(inputRef.current?.files || []);
+    if (!files.length || uploading) return;
+    if (files.length !== MAX_FILES) {
+      setError({ i18nKey: 'errors.minor_form.submission_file_count' });
       return;
     }
-    if (file.size > MAX_FILE_BYTES) {
-      setError(new Error(t('errors.minor_form.file_too_large')));
+    if (files.some(file => !file.name.toLowerCase().endsWith('.pdf'))) {
+      setError({ i18nKey: 'errors.minor_form.pdf_only' });
+      return;
+    }
+    if (files.some(file => file.size > MAX_FILE_BYTES)) {
+      setError({ i18nKey: 'errors.minor_form.file_too_large' });
+      return;
+    }
+    if (files.reduce((total, file) => total + file.size, 0) > MAX_TOTAL_BYTES) {
+      setError({ i18nKey: 'errors.minor_form.submission_total_too_large' });
       return;
     }
     setUploading(true);
     setError(null);
     try {
-      await minorFormsApi.uploadPublicSubmission(token, file);
-      setInfo(current => ({ ...current, uploaded: true }));
+      const result = await minorFormsApi.uploadPublicSubmission(token, files);
+      setInfo(current => ({ ...current, uploaded: true, files: result.files }));
       if (inputRef.current) inputRef.current.value = '';
     } catch (err) {
       setError(err);
@@ -69,7 +79,10 @@ export default function MinorFormUploadPage() {
             </p>
             {info.uploaded && (
               <p role="status" className="text-sm font-semibold" style={{ color: 'var(--success-color)' }}>
-                {t('minor_form.upload_complete')}
+                {t('minor_form.upload_complete', {
+                  count: info.files?.length || 0,
+                  filenames: info.files?.join(', ') || '',
+                })}
               </p>
             )}
             {error && (
@@ -80,7 +93,7 @@ export default function MinorFormUploadPage() {
             <form onSubmit={handleUpload} className="space-y-3">
               <label className="block text-sm" style={{ color: 'var(--text-primary)' }}>
                 {t('minor_form.upload_choose')}
-                <input ref={inputRef} type="file" accept="application/pdf,.pdf" required disabled={uploading}
+                <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple required disabled={uploading}
                   className="block mt-2 text-sm" />
               </label>
               <p className="text-xs" style={{ color: 'var(--text-subtle)' }}>

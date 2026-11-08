@@ -399,10 +399,10 @@ export default function PeopleTable({ eventId, eventTimezone, eventStartDate, us
     }
   };
 
-  const handleDownloadMinorForm = async (p) => {
+  const handleDownloadMinorForm = async (p, file) => {
     try {
       const response = await fetch(
-        `/api/events/${eventId}/participants/${p.id}/minor-form-submission`,
+        `/api/events/${eventId}/participants/${p.id}/minor-form-submissions/${encodeURIComponent(file.storage_key)}`,
         { headers: { Authorization: `Bearer ${getToken()}` } }
       );
       if (!response.ok) {
@@ -415,7 +415,7 @@ export default function PeopleTable({ eventId, eventTimezone, eventStartDate, us
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement('a');
       link.href = url;
-      link.download = `minor-form-${p.id}.pdf`;
+      link.download = file.filename;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
@@ -423,18 +423,27 @@ export default function PeopleTable({ eventId, eventTimezone, eventStartDate, us
     }
   };
 
-  const handleDeleteMinorForm = async (p) => {
+  const handleDeleteMinorForm = async (p, file) => {
     const ok = await confirm({
       title: t('minor_form.delete_confirm.title'),
-      message: t('minor_form.delete_confirm.body', { name: `${p.first_name} ${p.last_name}` }),
+      message: t('minor_form.delete_file_confirm.body', {
+        name: `${p.first_name} ${p.last_name}`,
+        filename: file.filename,
+      }),
       confirmLabel: t('minor_form.delete_confirm.confirm'),
     });
     if (!ok) return;
     try {
-      await minorFormsApi.deleteSubmission(eventId, p.id);
+      await minorFormsApi.deleteSubmissionFile(eventId, p.id, file.storage_key);
       setMinorFormSubmissions(current => {
         const next = new Map(current);
-        next.delete(p.id);
+        const submission = next.get(p.id);
+        if (!submission) return next;
+        const files = submission.files.filter(
+          submittedFile => submittedFile.storage_key !== file.storage_key
+        );
+        if (files.length) next.set(p.id, { ...submission, files });
+        else next.delete(p.id);
         return next;
       });
       showToast(t('minor_form.submission_deleted'), 'success');
@@ -1202,6 +1211,7 @@ export default function PeopleTable({ eventId, eventTimezone, eventStartDate, us
         const age = ageOnEventDate(p.date_of_birth, eventStartDate);
         if (age === null) return <span style={{ color: 'var(--text-subtle)' }}>—</span>;
         const submission = minorFormSubmissions.get(p.id);
+        const submittedFiles = submission?.files || [];
         return (
           <span className="inline-flex flex-wrap items-center gap-2">
             <span className="text-xs">{age}</span>
@@ -1216,19 +1226,26 @@ export default function PeopleTable({ eventId, eventTimezone, eventStartDate, us
               </button>
             )}
             {canDelete && submission && (
-              <>
+              <span className="inline-flex flex-wrap items-center gap-2">
                 <span className="text-xs font-semibold" style={{ color: 'var(--success-color)' }}>
-                  {t('minor_form.submission_received')}
+                  {t('minor_form.submission_received')} ({submittedFiles.length}/2)
                 </span>
-                <button type="button" onClick={() => handleDownloadMinorForm(p)}
-                  className="text-xs hover:underline" style={{ color: 'var(--io-accent)' }}>
-                  {t('minor_form.download')}
-                </button>
-                <button type="button" onClick={() => handleDeleteMinorForm(p)}
-                  className="text-xs hover:underline" style={{ color: 'var(--alert-burgundy)' }}>
-                  {t('minor_form.delete')}
-                </button>
-              </>
+                {submittedFiles.map(file => (
+                  <span key={file.storage_key} className="inline-flex items-center gap-1">
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {file.filename}
+                    </span>
+                    <button type="button" onClick={() => handleDownloadMinorForm(p, file)}
+                      className="text-xs hover:underline" style={{ color: 'var(--io-accent)' }}>
+                      {t('minor_form.download')}
+                    </button>
+                    <button type="button" onClick={() => handleDeleteMinorForm(p, file)}
+                      className="text-xs hover:underline" style={{ color: 'var(--alert-burgundy)' }}>
+                      {t('minor_form.delete')}
+                    </button>
+                  </span>
+                ))}
+              </span>
             )}
           </span>
         );

@@ -22,7 +22,7 @@ from app.core.urls import get_app_base_url
 from app.models.user import User, UserRole
 from app.models.participant import RegistrationStatus
 from app.models.custom_field import CustomFieldDefinition
-from app.models.minor_form import MinorFormSubmission
+from app.models.minor_form import MinorFormSubmission, MinorFormSubmissionFile
 from app.services.field_conditions import (
     filter_answers, format_errors, load_defs, person_of, reference_date,
 )
@@ -526,12 +526,21 @@ async def delete_participant(
     if not event:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"key": "errors.event.not_found"})
     minor_form = await db.get(MinorFormSubmission, participant_id)
-    minor_form_key = minor_form.storage_key if minor_form else None
+    minor_form_files = (
+        await db.scalars(
+            select(MinorFormSubmissionFile).where(
+                MinorFormSubmissionFile.participant_id == participant_id
+            )
+        )
+    ).all()
+    minor_form_keys = [file.storage_key for file in minor_form_files]
+    for submitted_file in minor_form_files:
+        await db.delete(submitted_file)
     if minor_form is not None:
         await db.delete(minor_form)
     await soft_delete_participant(db, participant)
     await db.commit()
-    if minor_form_key:
+    for minor_form_key in minor_form_keys:
         try:
             delete_pdf(minor_form_key)
         except OSError as exc:

@@ -438,6 +438,7 @@ NOT_CARRIED: dict[str, str] = {
     # Back up that directory separately from the database.
     "minor_form_templates": "instance_state",
     "minor_form_submissions": "instance_state",
+    "minor_form_submission_files": "instance_state",
 }
 
 # Which tables belong to an event is computed by walking the foreign keys to

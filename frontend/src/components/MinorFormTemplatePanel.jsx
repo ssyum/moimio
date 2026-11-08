@@ -4,12 +4,13 @@ import { useI18n } from '../hooks/useI18n';
 import { useToast } from '../hooks/useToast';
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 18 * 1024 * 1024;
 
 export default function MinorFormTemplatePanel({ eventId }) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const inputRef = useRef(null);
-  const [template, setTemplate] = useState(null);
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -17,7 +18,7 @@ export default function MinorFormTemplatePanel({ eventId }) {
     let active = true;
     setLoading(true);
     minorFormsApi.getTemplate(eventId)
-      .then(data => { if (active) setTemplate(data); })
+      .then(data => { if (active) setTemplates(data.files || []); })
       .catch(error => { if (active) showToast(error, 'error'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -25,18 +26,25 @@ export default function MinorFormTemplatePanel({ eventId }) {
 
   const handleUpload = async (event) => {
     event.preventDefault();
-    const file = inputRef.current?.files?.[0];
-    if (!file || saving) return;
-    if (!file.name.toLowerCase().endsWith('.pdf') || file.size > MAX_FILE_BYTES) {
-      showToast(new Error(t(file.size > MAX_FILE_BYTES
-        ? 'errors.minor_form.file_too_large'
-        : 'errors.minor_form.pdf_only')), 'error');
+    const files = Array.from(inputRef.current?.files || []);
+    if (!files.length || saving) return;
+    const totalBytes = files.reduce((total, file) => total + file.size, 0);
+    if (files.some(file => !file.name.toLowerCase().endsWith('.pdf'))) {
+      showToast(new Error(t('errors.minor_form.pdf_only')), 'error');
+      return;
+    }
+    if (files.some(file => file.size > MAX_FILE_BYTES) || totalBytes > MAX_TOTAL_BYTES) {
+      showToast(new Error(t(
+        totalBytes > MAX_TOTAL_BYTES
+          ? 'errors.minor_form.total_too_large'
+          : 'errors.minor_form.file_too_large',
+      )), 'error');
       return;
     }
     setSaving(true);
     try {
-      const saved = await minorFormsApi.uploadTemplate(eventId, file);
-      setTemplate(saved);
+      const saved = await minorFormsApi.uploadTemplate(eventId, files);
+      setTemplates(current => [...current, ...saved.files]);
       inputRef.current.value = '';
       showToast(t('minor_form.template_saved'), 'success');
     } catch (error) {
@@ -46,12 +54,12 @@ export default function MinorFormTemplatePanel({ eventId }) {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (storageKey) => {
     if (saving) return;
     setSaving(true);
     try {
-      await minorFormsApi.deleteTemplate(eventId);
-      setTemplate({ available: false, filename: null });
+      await minorFormsApi.deleteTemplate(eventId, storageKey);
+      setTemplates(current => current.filter(file => file.storage_key !== storageKey));
       showToast(t('minor_form.template_deleted'), 'success');
     } catch (error) {
       showToast(error, 'error');
@@ -77,25 +85,35 @@ export default function MinorFormTemplatePanel({ eventId }) {
         <p className="text-xs" style={{ color: 'var(--text-subtle)' }}>{t('common.loading')}</p>
       ) : (
         <>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {template?.available
-              ? t('minor_form.template_current', { filename: template.filename })
-              : t('minor_form.template_missing')}
-          </p>
+          {templates.length ? (
+            <ul className="space-y-2" aria-label={t('minor_form.template_files')}>
+              {templates.map(file => (
+                <li key={file.storage_key} className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="min-w-0 break-all" style={{ color: 'var(--text-muted)' }}>
+                    {file.filename}
+                  </span>
+                  <button type="button" disabled={saving}
+                    onClick={() => handleDelete(file.storage_key)}
+                    className="font-semibold hover:underline disabled:opacity-50"
+                    style={{ color: 'var(--alert-burgundy)' }}>
+                    {t('minor_form.template_remove')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {t('minor_form.template_missing')}
+            </p>
+          )}
           <form onSubmit={handleUpload} className="flex flex-wrap items-center gap-2">
-            <input ref={inputRef} type="file" accept="application/pdf,.pdf" required={!template?.available}
+            <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple
+              required={!templates.length}
               disabled={saving} className="text-xs max-w-full" />
             <button type="submit" disabled={saving}
               className="text-xs font-semibold px-3 py-1.5 rounded-card bg-steel-blue text-white disabled:opacity-50">
               {saving ? t('common.saving') : t('minor_form.template_upload')}
             </button>
-            {template?.available && (
-              <button type="button" disabled={saving} onClick={handleDelete}
-                className="text-xs font-semibold px-3 py-1.5 rounded-card border border-[var(--card-border)] disabled:opacity-50"
-                style={{ color: 'var(--alert-burgundy)' }}>
-                {t('minor_form.template_remove')}
-              </button>
-            )}
           </form>
         </>
       )}
